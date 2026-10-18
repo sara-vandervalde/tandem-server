@@ -355,6 +355,7 @@ GET    /api/events/{id}/messages?page=&pageSize=  200
 POST   /api/events/{id}/messages                  201
 
 Settlement
+GET    /api/events/{id}/summary                   200   סיכום אירוע: תאריך, אחראים, מקום, ארוחה, מתנה, "מה להביא", תשלומים
 GET    /api/events/{id}/settlement-preview        200   הערכה חיה, לא נשמרת
 POST   /api/events/{id}/settlements               201   סגירת חשבון
 GET    /api/me/settlements                        200   כמה אני משלם ולמי
@@ -413,7 +414,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [x] שבעת ה-Enums, קובץ לכל אחד
 
 **מודל ובסיס נתונים**
-- [ ] תשע ישויות הליבה ב-Core, עם Navigation Properties: Users, Groups, GroupMembers, GroupInvitations, Events, Venues, Gifts, Meals, EventItems (כולל ה-`Version`). Banks, BankAccounts ו-Settlements נוספות בשלב 6 ב-migration שני, ו-EventMessages בשלב 8א ב-migration שלישי
+- [x] עשר ישויות הליבה ב-Core, עם Navigation Properties: Users, Groups, GroupMembers, GroupInvitations, Events, EventParticipants, Venues, Gifts, Meals, EventItems (כולל ה-`Version`). Banks, BankAccounts ו-Settlements נוספות בשלב 6 ב-migration שני, ו-EventMessages בשלב 8א ב-migration שלישי
 - [ ] `AppDbContext` עם DbSet לכל ישות, והגדרות Fluent API בקבצי Configuration
 - [ ] Connection string ב-User Secrets:
   ```
@@ -477,6 +478,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [ ] ביטול אירוע (`PATCH /api/events/{id}`, סטטוס Cancelled): רק אחראי האירוע; אירוע שכבר Settled ← 409
 - [ ] יצירת קבוצה מוסיפה את היוצר גם כמנהל וגם לטבלת GroupMembers, באותה שמירה
 - [ ] יצירת אירוע שומרת את `CreatedById`, ויוצרת גם Venue ו-Meal ריקים, באותה שמירה
+- [ ] בחירת משתתפים (`PUT /api/events/{id}/participants`): רק אחראי האירוע, רק חברי הקבוצה (אחרת 400), החלפה של כל הרשימה; מעבר לשיטת חלוקה אחרת מוחק את הרשימה. חבר שעוזב או מוסר מהקבוצה יוצא מרשימות המשתתפים של אירועים פתוחים
 - [ ] CORS: policy בשם, שה-origins שלה נטענים מהקונפיגורציה (`Cors:AllowedOrigins` ב-appsettings), ולא כתובים בקוד
 - [ ] MVC Attributes בכל Controller: `[ApiController]`, `[Route("api/[controller]")]`, `[HttpGet("{id:int}")]` עם route constraints, `[ProducesResponseType]` לכל סטטוס אפשרי (כך Swagger מתעד גם 404 ו-409), `[Authorize]` / `[AllowAnonymous]`
 - [ ] Action Filter מותאם אחד לפחות כ-Attribute, למשל `[RequireGroupMember]` שבודק חברות בקבוצה לפני הפעולה
@@ -533,6 +535,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [ ] תצוגה חיה (`settlement-preview`) – מחשבת בלי לשמור
 - [ ] סגירת חשבון רק כשהסטטוס Organized; יוצרת Settlements, נועלת מחירים, מעבירה ל-Settled. שינוי מחיר אחר כך ← 409
 - [ ] פרטי חשבון גלויים רק למי שחייב כסף לבעל החשבון
+- [ ] **סיכום אירוע** (`GET /api/events/{id}/summary`): `EventSummaryDto` אחד עם התאריך, אחראי האירוע, המקום, הארוחה (סוג ושם קייטרינג), המתנה, הפריטים ומי מביא כל אחד, והתשלומים (הערכה, או הסופיים אחרי סגירה). שאילתה אחת עם `Include`, `AsNoTracking`, רק חברי הקבוצה ו-Admin. אותו DTO ישמש גם את מייל "האירוע מאורגן" בשלב 8ב. בריאקט (R5): מסך סיכום עם אפשרות הדפסה
 - [ ] בדיקות: חלוקה שווה, OrganizerPays, SelectedMembers (כולל משלם שאינו משתתף), כמה משלמים, סכום שלא מתחלק שווה, אירוע בלי מתנה, מחירים של 0
 
 ### שלב 7: סגירת השרת (יום אחד)
@@ -574,7 +577,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [ ] עמוד קבוצה: חברים; למנהל בלבד – הזמנת חברים (טופס עם כמה אימיילים), רשימת הזמנות ומצבן, הסרת חבר והעברת ניהול; כפתור "עזיבת קבוצה" עם הודעה מתאימה כשאי אפשר לעזוב
 - [ ] לוח שנה של קבוצה
 - [ ] רשימת אירועים עם חיפוש, סינון, מיון ו-pagination מול השרת
-- [ ] טופס אירוע **אחד** ליצירה ולעריכה, עם שדות בחירה ו-validation
+- [ ] טופס אירוע **אחד** ליצירה ולעריכה, עם שדות בחירה ו-validation. בבחירת "משתתפים נבחרים": רשימת חברי הקבוצה לסימון, ומתחתיה הערה קבועה: "מי ששילם על תחום (למשל קנה את המתנה) ולא נבחר כמשתתף – מקבל בחזרה את כל מה ששילם"
 - [ ] עמוד אירוע: אחראי אירוע, כרטיס לכל תחום (מקום, מתנה אם יש, ארוחה) עם כפתור תפיסה וטופס פרטים ומחיר, ורשימת "מה להביא" בשני חלקים – אוכל וכלים ועריכה; לאחראי הארוחה ב-"מכין לבד" – התפריט הפרטי שלו
 - [ ] מסך Admin: כל המשתמשים וכל הקבוצות
 
@@ -621,7 +624,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
   - שבוע לפני אירוע שלא אורגן – התראה לאחראי האירוע ולאחראי התחומים
   - יומיים לפני – תזכורת לכל החברים עם המיקום
   - כמה ימים אחרי האירוע – תזכורת לאחראי לסגור את החשבון
-- [ ] מייל לכל החברים כשהאירוע עובר ל-Organized, ובסגירת החשבון
+- [ ] מייל לכל החברים כשהאירוע עובר ל-Organized (עם סיכום האירוע – אותו `EventSummaryDto`), ובסגירת החשבון
 - [ ] עמודה `ReminderSentAt` או טבלת לוג קטנה, כדי שתזכורת לא תישלח פעמיים
 - [ ] `BackgroundService` הוא Singleton – הוא יוצר scope חדש (`IServiceScopeFactory`) בכל ריצה כדי לקבל DbContext. בדיוק הדוגמה של "Singleton שמחזיק Scoped" מסעיף 3
 

@@ -31,4 +31,16 @@ public class Event
 
     // Concurrency token, mapped to PostgreSQL's xmin column in the Configuration
     public uint Version { get; set; }
+
+    public Venue Venue { get; set; } = null!;
+
+    // Null when HasGift is false
+    public Gift? Gift { get; set; }
+
+    public Meal Meal { get; set; } = null!;
+
+    // Used only when SplitMethod is SelectedMembers
+    public ICollection<EventParticipant> Participants { get; set; } = new List<EventParticipant>();
+
+    public ICollection<EventItem> Items { get; set; } = new List<EventItem>();
 }
