@@ -405,7 +405,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [x] `Microsoft.EntityFrameworkCore.Design` (גרסה 9) ב-API – 9.0.21
 - [x] `Swashbuckle.AspNetCore` ב-API – ממשק Swagger. בתבנית של .NET 9 יש רק `AddOpenApi`, בלי ממשק גרפי. גרסה 9.0.6 (במקום `Microsoft.AspNetCore.OpenApi`)
 - [x] `dotnet tool install --global dotnet-ef` – 9.0.21
-- [ ] מחיקת קבצי הדוגמה של התבנית (WeatherForecast)
+- [x] מחיקת קבצי הדוגמה של התבנית (WeatherForecast)
 - [ ] תיקיות ב-Core: Entities, Enums, Interfaces (Repositories, Services), DTOs, Common, Exceptions
 - [ ] שבעת ה-Enums, קובץ לכל אחד
 
