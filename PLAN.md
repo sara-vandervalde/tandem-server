@@ -406,8 +406,8 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [x] `Swashbuckle.AspNetCore` ב-API – ממשק Swagger. בתבנית של .NET 9 יש רק `AddOpenApi`, בלי ממשק גרפי. גרסה 9.0.6 (במקום `Microsoft.AspNetCore.OpenApi`)
 - [x] `dotnet tool install --global dotnet-ef` – 9.0.21
 - [x] מחיקת קבצי הדוגמה של התבנית (WeatherForecast)
-- [ ] תיקיות ב-Core: Entities, Enums, Interfaces (Repositories, Services), DTOs, Common, Exceptions
-- [ ] שבעת ה-Enums, קובץ לכל אחד
+- [x] תיקיות ב-Core: Entities, Enums, Interfaces (Repositories, Services), DTOs, Common, Exceptions
+- [x] שבעת ה-Enums, קובץ לכל אחד
 
 **מודל ובסיס נתונים**
 - [ ] תשע ישויות הליבה ב-Core, עם Navigation Properties: Users, Groups, GroupMembers, GroupInvitations, Events, Venues, Gifts, Meals, EventItems (כולל ה-`Version`). Banks, BankAccounts ו-Settlements נוספות בשלב 6 ב-migration שני, ו-EventMessages בשלב 8א ב-migration שלישי
