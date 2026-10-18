@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Tandem.Core.Entities;
+using Tandem.Data.Seed;
 
 namespace Tandem.Data;
 
@@ -26,5 +27,7 @@ public class AppDbContext : DbContext
 
         // Loads every IEntityTypeConfiguration class in this project (the Configurations folder)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        modelBuilder.Seed();
     }
 }
