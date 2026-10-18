@@ -366,3 +366,6 @@ ask.txt
 reply.txt
 *.docx
 *.pdf
+
+# Log files written by NLog
+logs/

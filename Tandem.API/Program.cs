@@ -1,10 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using NLog.Web;
 using Tandem.API.Middleware;
 using Tandem.Core.Interfaces;
 using Tandem.Data;
 using Tandem.Data.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Code logs through ILogger only; NLog writes it to the console and to a daily file (see nlog.config).
+// RemoveLoggerFactoryFilter = false keeps the log levels from appsettings, so they can differ per environment
+builder.Logging.ClearProviders();
+builder.Host.UseNLog(new NLogAspNetCoreOptions { RemoveLoggerFactoryFilter = false });
 
 // Add services to the container.
 
@@ -38,6 +44,7 @@ var app = builder.Build();
 
 // Must be first, so it catches exceptions from everything that runs after it
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

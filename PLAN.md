@@ -433,10 +433,10 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [x] `PagedResult<T>`: Items, Page, PageSize, TotalCount
 - [x] ממשק `INotificationSender` ב-Core, ומימוש `LogNotificationSender` ב-Data שרק כותב את ההודעה ללוג (בלי תוכן רגיש). הערוץ נבחר לפי `Notifications:Channel` ב-appsettings, והרישום ב-DI לפיו. בשלב 8ב מוסיפים מימוש ומשנים רק את ההגדרה
 - [x] `appsettings.json` ו-`appsettings.Development.json`
-- [ ] Middleware לטיפול גלובלי בשגיאות: JSON אחיד (ProblemDetails), לוג ברמת Error
-- [ ] Middleware ל-CorrelationId: נוצר לכל בקשה, מוחזר ב-header, נכנס ל-logging scope
-- [ ] NLog (`NLog.Web.AspNetCore`) עם `nlog.config`; לוג Information לכל בקשה נכנסת, כולל CorrelationId
-- [ ] סדר ה-pipeline: ExceptionHandling ← CorrelationId ← CORS ← Authentication ← Authorization ← Controllers. טיפול בשגיאות ראשון, כדרישת המורה. ה-CorrelationId נשמר גם ב-`HttpContext.Items`, וה-ExceptionHandling קורא אותו משם כשהוא כותב את שורת ה-Error – כי ה-logging scope של CorrelationId כבר נסגר כשהחריגה מגיעה אליו
+- [x] Middleware לטיפול גלובלי בשגיאות: JSON אחיד (ProblemDetails), לוג ברמת Error
+- [x] Middleware ל-CorrelationId: נוצר לכל בקשה, מוחזר ב-header, נכנס ל-logging scope
+- [x] NLog (`NLog.Web.AspNetCore`) עם `nlog.config`; לוג Information לכל בקשה נכנסת, כולל CorrelationId
+- [x] סדר ה-pipeline: ExceptionHandling ← CorrelationId ← CORS ← Authentication ← Authorization ← Controllers. טיפול בשגיאות ראשון, כדרישת המורה. ה-CorrelationId נשמר גם ב-`HttpContext.Items`, וה-ExceptionHandling קורא אותו משם כשהוא כותב את שורת ה-Error – כי ה-logging scope של CorrelationId כבר נסגר כשהחריגה מגיעה אליו
 
 **כללי עבודה מכאן והלאה**
 - כל מתודה async מקבלת `CancellationToken` ומעבירה אותו עד ה-DbContext.

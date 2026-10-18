@@ -30,10 +30,14 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception exception)
         {
-            var correlationId = context.Items["CorrelationId"] as string ?? context.TraceIdentifier;
+            // The CorrelationId logging scope has already closed here, so the id is read from HttpContext
+            var correlationId = context.Items[CorrelationIdMiddleware.ItemKey] as string ?? context.TraceIdentifier;
 
-            _logger.LogError(exception, "Unhandled exception for {Method} {Path}. CorrelationId: {CorrelationId}",
-                context.Request.Method, context.Request.Path, correlationId);
+            using (_logger.BeginScope(new Dictionary<string, object> { [CorrelationIdMiddleware.ItemKey] = correlationId }))
+            {
+                _logger.LogError(exception, "Unhandled exception for {Method} {Path}",
+                    context.Request.Method, context.Request.Path);
+            }
 
             var problem = new ProblemDetails
             {
