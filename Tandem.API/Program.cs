@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
+using Tandem.API.Extensions;
 using Tandem.API.Middleware;
-using Tandem.Core.Interfaces;
 using Tandem.Core.Entities;
+using Tandem.Core.Interfaces;
 using Tandem.Core.Interfaces.Repositories;
 using Tandem.Core.Interfaces.Services;
 using Tandem.Data;
@@ -34,15 +35,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
-// JWT settings through IOptions. The signing key is a secret (User Secrets), so fail fast if it is missing or too short
-var jwtSection = builder.Configuration.GetSection(JwtSettings.SectionName);
-var jwtKey = jwtSection["Key"];
-if (string.IsNullOrEmpty(jwtKey) || jwtKey.Length < 32)
-{
-    throw new InvalidOperationException("Jwt:Key is missing or shorter than 32 characters. Set it with dotnet user-secrets.");
-}
-builder.Services.Configure<JwtSettings>(jwtSection);
+// JWT: settings (IOptions), token validation on every request, and authorization
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Stateless helpers, safe to share across all requests
 builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
@@ -62,9 +58,8 @@ switch (notificationChannel)
 
 builder.Services.AddControllers();
 
-// Swagger: scans the controllers and builds a documentation page for every endpoint
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Swagger: a documentation page for every endpoint, with an Authorize button for the JWT
+builder.Services.AddSwaggerWithJwt();
 
 var app = builder.Build();
 
@@ -83,6 +78,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Authentication (who is calling - reads the token) must come before Authorization (are they allowed)
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

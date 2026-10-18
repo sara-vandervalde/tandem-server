@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Tandem.API.Controllers;
 
 // Development-only tools for checking the infrastructure. In any other environment the endpoints do not exist (404)
 [ApiController]
+[AllowAnonymous]
 [Route("api/diagnostics")]
 public class DiagnosticsController : ControllerBase
 {
