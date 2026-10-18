@@ -373,8 +373,8 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 | --- | --- | --- | --- |
 | 0 | הקמה: Solution, הפניות, GitHub | 1 | ✅ הושלם |
 | 1 | תשתית: חבילות, ישויות, DbContext, Migration ראשון, Seed, Middleware, NLog | 2–3 | ✅ הושלם |
-| 2 | הרשמה, התחברות, JWT, roles | 2 | ⏳ הבא |
-| 3 | קבוצות, הזמנות ואירועים: CRUD, DTOs, AutoMapper, סינון ו-pagination | 4–5 | |
+| 2 | הרשמה, התחברות, JWT, roles | 2 | ✅ הושלם |
+| 3 | קבוצות, הזמנות ואירועים: CRUD, DTOs, AutoMapper, סינון ו-pagination | 4–5 | ⏳ הבא |
 | R1–R2 | ריאקט: הקמה, התחברות, שלד האתר | 2–3 | |
 | 4 | **הלב:** תפיסת אחריות (אירוע, מקום, מתנה, ארוחה) ופריטים, concurrency token, 409, סטטוס אוטומטי | 3.5–4.5 | |
 | R3–R4 | ריאקט: מסכים, לוח שנה, טופס אירוע, טיפול ב-409 | 3–4 | |
@@ -445,16 +445,16 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 
 **בדיקת סיום:** מחיקת בסיס הנתונים והרצת `database update` מקימות אותו עם Seed; שגיאה מכוונת מחזירה JSON אחיד ונרשמת בלוג עם CorrelationId.
 
-### שלב 2: הרשמה, התחברות ו-roles (2 ימים)
+### שלב 2: הרשמה, התחברות ו-roles (2 ימים) ✅
 
-- [ ] `POST /api/auth/register` ו-`POST /api/auth/login`, עם hashing לסיסמה (`PasswordHasher<T>`)
-- [ ] `Microsoft.AspNetCore.Authentication.JwtBearer`
-- [ ] JWT עם claims: מזהה משתמש, אימייל, role
-- [ ] מחלקת `JwtSettings` שנטענת עם `IOptions<JwtSettings>`; מפתח ה-JWT ב-User Secrets
-- [ ] Swagger עם כפתור Authorize ל-Bearer token
-- [ ] HTTP: Location header ב-201, CorrelationId ב-header של כל תשובה, ו-PUT אידמפוטנטי (משתמש שתופס תפקיד שכבר שלו מקבל 200 ולא 409)
-- [ ] Endpoints של Admin בלבד: רשימת משתמשים, חסימת משתמש
-- [ ] לוגים: אף פעם לא סיסמה, token או גוף בקשת הרשמה
+- [x] `POST /api/auth/register` ו-`POST /api/auth/login`, עם hashing לסיסמה (`PasswordHasher<T>`)
+- [x] `Microsoft.AspNetCore.Authentication.JwtBearer`
+- [x] JWT עם claims: מזהה משתמש, אימייל, role
+- [x] מחלקת `JwtSettings` שנטענת עם `IOptions<JwtSettings>`; מפתח ה-JWT ב-User Secrets
+- [x] Swagger עם כפתור Authorize ל-Bearer token
+- [x] HTTP: Location header ב-201, CorrelationId ב-header של כל תשובה, ו-PUT אידמפוטנטי (משתמש שתופס תפקיד שכבר שלו מקבל 200 ולא 409). ה-PUT האידמפוטנטי ייבדק בפועל בשלב 4; כאן – PATCH חסימה אידמפוטנטי
+- [x] Endpoints של Admin בלבד: רשימת משתמשים (עם pagination), משתמש לפי מספר, חסימה ושחרור
+- [x] לוגים: אף פעם לא סיסמה, token או גוף בקשת הרשמה
 
 **בדיקת סיום:** בלי token – 401; Member שניגש ל-endpoint של Admin – 403.
 
@@ -665,9 +665,9 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 | ☐ | 5א. שלוש migrations: Init, AddBanksAndSettlements, AddEventMessages | 1, 6, 8א |
 | ☐ | 8. DTOs נפרדים ל-request ול-response, AutoMapper Profiles | 3 |
 | ☐ | 9. async מקצה לקצה, CancellationToken | 1 והלאה |
-| ☐ | 10. Middleware לשגיאות ול-CorrelationId, סדר pipeline נכון | 1 |
-| ☐ | 11. appsettings לפי סביבה, IOptions, User Secrets, אין סודות ב-repo | 1, 2 |
-| ☐ | 12. JWT, הרשמה והתחברות, שני roles עם הרשאות שונות בפועל, [Authorize] | 2 |
+| ☑ | 10. Middleware לשגיאות ול-CorrelationId, סדר pipeline נכון | 1 |
+| ☑ | 11. appsettings לפי סביבה, IOptions, User Secrets, אין סודות ב-repo | 1, 2 |
+| ☑ | 12. JWT, הרשמה והתחברות, שני roles עם הרשאות שונות בפועל, [Authorize] | 2 |
 | ☐ | 13. xUnit + Moq על Service, בדיקת משאב מוגבל – תקין ונדחה | 5 |
 | ☐ | חלק ג: concurrency token, 409, בדיקה עם שני DbContext, הסבר ב-README | 4, 7 |
 | ☐ | חלק ד: NLog, CorrelationId בלוג, Error לחריגות, Warning להתנגשויות, בלי סודות | 1, 2, 4 |

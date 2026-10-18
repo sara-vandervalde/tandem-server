@@ -45,6 +45,13 @@ public static class AuthenticationExtensions
                 {
                     OnChallenge = async context =>
                     {
+                        // Why the request was rejected (missing, expired, bad signature...) - never the token itself
+                        var logger = context.HttpContext.RequestServices
+                            .GetRequiredService<ILoggerFactory>().CreateLogger("Authentication");
+                        logger.LogWarning("Authentication failed for {Path}: {Reason}",
+                            context.Request.Path,
+                            context.AuthenticateFailure?.Message ?? "no token was sent");
+
                         context.HandleResponse();
                         await WriteProblemAsync(context.HttpContext, StatusCodes.Status401Unauthorized,
                             "יש להתחבר כדי לבצע פעולה זו");
