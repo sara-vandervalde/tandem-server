@@ -1,6 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using Tandem.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+// The connection string comes from User Secrets in development - never from code or appsettings.json
+var connectionString = builder.Configuration.GetConnectionString("Default")
+    ?? throw new InvalidOperationException("Connection string 'Default' is missing. Set it with dotnet user-secrets.");
+
+// Registered as Scoped: one DbContext per HTTP request
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.AddControllers();
 
