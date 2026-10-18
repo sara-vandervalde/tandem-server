@@ -49,7 +49,7 @@ Tandem היא מערכת לארגון אירועים בקבוצה: לוח שנה
 10. **לוח הודעות (תוספת):** בכל אירוע חברי הקבוצה יכולים לכתוב הודעות ("כדאי להוסיף עוגה ללא סוכר"). לא צ'אט בזמן אמת – העמוד מתרענן כל כמה שניות.
 11. **סגירת חשבון:** אחראי האירוע סוגר ידנית, כשהאירוע מאורגן. המערכת סוכמת את מחירי המקום, המתנה והארוחה, מחלקת לפי שיטת החלוקה ומקזזת ממי ששילם. המחירים ננעלים, והסטטוס עובר ל-Settled. עד אז כל חבר רואה הערכה חיה של חלקו.
 12. **תשלום:** כל חבר רואה כמה לשלם, למי, ואת פרטי החשבון של המקבל, ומסמן "שילמתי". אין העברה בנקאית מתוך המערכת.
-13. **מיילים:** כל מקום שבו המערכת "שולחת מייל" (הזמנה לקבוצה, התראות, סגירת חשבון) עובר דרך הממשק `IEmailSender`. עד שלב 8 המימוש רק כותב ללוג; בשלב 8 מחליפים אותו בשליחה אמיתית.
+13. **הודעות (מייל / SMS):** כל מקום שבו המערכת "שולחת הודעה" (הזמנה לקבוצה, התראות, סגירת חשבון) עובר דרך ממשק גנרי אחד, `INotificationSender`. ה-Service לא יודע איך ההודעה נשלחת. המימושים: `LogNotificationSender` (עכשיו – רק כותב ללוג), `EmailNotificationSender` (שלב 8ב), ובעתיד אפשר `SmsNotificationSender`. הערוץ נבחר בהגדרות (`Notifications:Channel` ב-appsettings), לא בקוד. **עיקרון כללי – בחוכמה:** ממשק (I...) רק כשיש לו סיבה אמיתית: תלות בטכנולוגיה חיצונית שעשויה להתחלף (בסיס נתונים, ערוץ הודעות), או צורך להחליף אותה ב-Mock בבדיקות. מחלקות פנימיות פשוטות (למשל `SettlementCalculator`) – בלי ממשק.
 14. **מנהל המערכת** רואה את כל המשתמשים והקבוצות, אבל לא משתתף בארגון אירועים של קבוצות שהוא לא חבר בהן.
 
 ### מחזור החיים של אירוע
@@ -84,7 +84,7 @@ Tandem/
 ├── Tandem.Core/
 │   ├── Entities/
 │   ├── Enums/
-│   ├── Interfaces/      ← כולל IEmailSender
+│   ├── Interfaces/      ← כולל INotificationSender
 │   │   ├── Repositories/
 │   │   └── Services/
 │   ├── DTOs/
@@ -94,7 +94,7 @@ Tandem/
 │   ├── AppDbContext.cs
 │   ├── Configurations/  ← IEntityTypeConfiguration לכל ישות
 │   ├── Repositories/
-│   ├── Email/           ← LogEmailSender (עכשיו), SmtpEmailSender (שלב 8)
+│   ├── Notifications/   ← LogNotificationSender (עכשיו), EmailNotificationSender (שלב 8ב)
 │   └── Migrations/
 ├── Tandem.Service/
 │   ├── Services/
@@ -431,7 +431,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 **תשתית רוחבית**
 - [ ] `Result<T>` אחיד ב-Core: Success, NotFound, Forbidden, Conflict, ValidationError
 - [ ] `PagedResult<T>`: Items, Page, PageSize, TotalCount
-- [ ] ממשק `IEmailSender` ב-Core, ומימוש `LogEmailSender` ב-Data שרק כותב את המייל ללוג (בלי תוכן רגיש). רישום ב-DI. בשלב 8ב מחליפים רק את שורת הרישום
+- [ ] ממשק `INotificationSender` ב-Core, ומימוש `LogNotificationSender` ב-Data שרק כותב את ההודעה ללוג (בלי תוכן רגיש). הערוץ נבחר לפי `Notifications:Channel` ב-appsettings, והרישום ב-DI לפיו. בשלב 8ב מוסיפים מימוש ומשנים רק את ההגדרה
 - [ ] `appsettings.json` ו-`appsettings.Development.json`
 - [ ] Middleware לטיפול גלובלי בשגיאות: JSON אחיד (ProblemDetails), לוג ברמת Error
 - [ ] Middleware ל-CorrelationId: נוצר לכל בקשה, מוחזר ב-header, נכנס ל-logging scope
@@ -470,7 +470,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [ ] Endpoint ללוח שנה לפי טווח תאריכים
 - [ ] `AsNoTracking` בכל שאילתת קריאה; `Include`/`ThenInclude` בעמוד אירוע – בלי N+1
 - [ ] הזמנות: יצירה לרשימת אימיילים (מדלגת על חברים קיימים ועל הזמנות ממתינות), תוקף 14 יום, ביטול על ידי המנהל, רשימת "ההזמנות שלי" לפי האימייל של המשתמש המחובר, אישור (מוסיף ל-GroupMembers באותה שמירה) ודחייה
-- [ ] יצירת הזמנה "שולחת מייל" דרך `IEmailSender` – בשלב הזה רק שורה בלוג
+- [ ] יצירת הזמנה "שולחת הודעה" דרך `INotificationSender` – בשלב הזה רק שורה בלוג
 - [ ] רק מנהל הקבוצה מזמין ומסיר חברים
 - [ ] העברת ניהול: רק לחבר בקבוצה; המנהל הקודם נשאר חבר רגיל
 - [ ] עזיבת קבוצה: מנהל שמנסה לעזוב בלי להעביר ניהול ← 409 "יש להעביר את ניהול הקבוצה לחבר אחר לפני העזיבה"; מנהל שהוא החבר היחיד יכול רק למחוק את הקבוצה; חבר עם אחריות או פריט באירוע פתוח ← 409 "יש לשחרר את האחריות לפני העזיבה" (גם בהסרה על ידי המנהל)
@@ -617,7 +617,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 
 ### 8ב: מיילים ותזכורות (2.5–3.5 ימים)
 
-- [ ] `SmtpEmailSender` ב-Data, עם `SmtpSettings` דרך `IOptions`; סיסמת SMTP ב-User Secrets. מחליפים רק את שורת הרישום ב-Program.cs – שום Service לא משתנה
+- [ ] `EmailNotificationSender` ב-Data (מממש `INotificationSender`), עם `SmtpSettings` דרך `IOptions`; סיסמת SMTP ב-User Secrets. משנים רק את `Notifications:Channel` ל-`Email` – שום Service לא משתנה. (`SmsNotificationSender` – אופציונלי, באותה דרך)
 - [ ] לבדיקות ולהדגמה: **smtp4dev** – שרת SMTP מקומי שתופס את המיילים ומציג אותם, בלי לשלוח באמת. (ייתכן גם שסינון האינטרנט חוסם שליחה אמיתית מהמחשב)
 - [ ] מייל הזמנה לקבוצה, עם קישור למערכת
 - [ ] `BackgroundService` שרץ פעם ביום:
