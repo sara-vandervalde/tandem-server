@@ -297,6 +297,7 @@ POST   /api/auth/register                         201
 POST   /api/auth/login                            200
 
 Users (Admin)
+GET    /api/users/{id}                            200   Admin; היעד של Location אחרי הרשמה
 GET    /api/users?page=&pageSize=                 200
 PATCH  /api/users/{id}                            204   חסימה / שחרור
 
@@ -371,8 +372,8 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 | # | שלב | ימים | מצב |
 | --- | --- | --- | --- |
 | 0 | הקמה: Solution, הפניות, GitHub | 1 | ✅ הושלם |
-| 1 | תשתית: חבילות, ישויות, DbContext, Migration ראשון, Seed, Middleware, NLog | 2–3 | ⏳ בתהליך |
-| 2 | הרשמה, התחברות, JWT, roles | 2 | |
+| 1 | תשתית: חבילות, ישויות, DbContext, Migration ראשון, Seed, Middleware, NLog | 2–3 | ✅ הושלם |
+| 2 | הרשמה, התחברות, JWT, roles | 2 | ⏳ הבא |
 | 3 | קבוצות, הזמנות ואירועים: CRUD, DTOs, AutoMapper, סינון ו-pagination | 4–5 | |
 | R1–R2 | ריאקט: הקמה, התחברות, שלד האתר | 2–3 | |
 | 4 | **הלב:** תפיסת אחריות (אירוע, מקום, מתנה, ארוחה) ופריטים, concurrency token, 409, סטטוס אוטומטי | 3.5–4.5 | |
@@ -401,7 +402,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [x] העברה לנתיב `C:\PROJECKT\Tandem`
 - [x] Repository `tandem-server` ב-GitHub עם `.gitignore` של Visual Studio
 
-### שלב 1: תשתית (2–3 ימים)
+### שלב 1: תשתית (2–3 ימים) ✅
 
 **חבילות ומבנה**
 - [x] התקנת PostgreSQL מקומית (installer רשמי ל-Windows, כולל pgAdmin). לרשום את סיסמת המשתמש `postgres` שנבחרת בהתקנה. מותקנת גרסה 18, פורט 5432
@@ -542,6 +543,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 
 - [ ] `Database.Migrate()` בעליית השרת בסביבת Development – הבודקת לא מריצה שום פקודה
 - [ ] README: תיאור המערכת, המשאב המוגבל ואופן הטיפול בתחרות, הוראות הרצה: התקנת PostgreSQL והגדרת ה-connection string ב-User Secrets, משתמשי דמו לכל role עם פרטי כניסה
+- [ ] **תזכורת אבטחה:** AutoMapper 14.0.0 מכיל פרצת DoS ידועה (GHSA-rvv3-g6hj-g44x). לעבור ל-15.1.3 ומעלה עם רישיון Community חינמי (luckypennysoftware.com), המפתח ב-User Secrets – או לתעד ב-README למה הסיכון נמוך
 - [ ] מעבר על רשימת הבדיקה (סעיף 12), סעיף אחר סעיף
 - [ ] `git clone` לתיקייה חדשה, הרצה מאפס – ועובד
 
@@ -655,7 +657,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 | --- | --- | --- |
 | ☐ | 1. REST, סטטוסים 200/201+Location/204/400/401/403/404/409, Swagger | 2, 3, 4 |
 | ☐ | 2. FromRoute/FromQuery/FromBody, Data Annotations, ModelState, ולידציה עסקית ב-Service | 3 |
-| ☐ | 3. ארבעה פרויקטים, כיוון תלויות נכון, Core נקי | 0 |
+| ☑ | 3. ארבעה פרויקטים, כיוון תלויות נכון, Core נקי | 0 |
 | ☐ | 4. DI ב-constructor, lifetimes מודעים, הסבר Singleton מול Scoped | 1 |
 | ☐ | 5. Code-First, DbSet לכל ישות, שתי migrations לפחות, connection string מהקונפיגורציה, Seed | 1, 4/6 |
 | ☐ | 6. CRUD מלא, LINQ עם סינון ומיון, Skip/Take בשאילתה, AsNoTracking | 3 |

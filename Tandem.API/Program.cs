@@ -1,9 +1,16 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
 using Tandem.API.Middleware;
 using Tandem.Core.Interfaces;
+using Tandem.Core.Entities;
+using Tandem.Core.Interfaces.Repositories;
+using Tandem.Core.Interfaces.Services;
 using Tandem.Data;
 using Tandem.Data.Notifications;
+using Tandem.Data.Repositories;
+using Tandem.Service.Mapping;
+using Tandem.Service.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +27,16 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 
 // Registered as Scoped: one DbContext per HTTP request
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+
+// Repositories: Scoped, like the DbContext they use
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+// Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Stateless helpers, safe to share across all requests
+builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddAutoMapper(typeof(UserProfile));
 
 // The notification channel is chosen in appsettings, so switching to email or SMS needs no code change
 var notificationChannel = builder.Configuration["Notifications:Channel"];
