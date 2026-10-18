@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Personal notes and course materials (not part of the project)
+ask.txt
+reply.txt
+*.docx
