@@ -415,24 +415,24 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 
 **מודל ובסיס נתונים**
 - [x] עשר ישויות הליבה ב-Core, עם Navigation Properties: Users, Groups, GroupMembers, GroupInvitations, Events, EventParticipants, Venues, Gifts, Meals, EventItems (כולל ה-`Version`). Banks, BankAccounts ו-Settlements נוספות בשלב 6 ב-migration שני, ו-EventMessages בשלב 8א ב-migration שלישי
-- [ ] `AppDbContext` עם DbSet לכל ישות, והגדרות Fluent API בקבצי Configuration
-- [ ] Connection string ב-User Secrets:
+- [x] `AppDbContext` עם DbSet לכל ישות, והגדרות Fluent API בקבצי Configuration
+- [x] Connection string ב-User Secrets:
   ```
   dotnet user-secrets init --project Tandem.API
   dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Database=TandemDb;Username=postgres;Password=<הסיסמה שלך>" --project Tandem.API
   ```
-- [ ] Seed עם `HasData`: Admin, שני Members, קבוצה (אחד ה-Members מנהל) ואירוע עם Venue ו-Meal. הסיסמאות כ-hash קבוע שחושב מראש, כי `HasData` לא מריץ קוד
-- [ ] Migration ראשון:
+- [x] Seed עם `HasData`: Admin, שני Members, קבוצה (אחד ה-Members מנהל) ואירוע עם Venue ו-Meal. הסיסמאות כ-hash קבוע שחושב מראש, כי `HasData` לא מריץ קוד
+- [x] Migration ראשון:
   ```
   dotnet ef migrations add Init -p Tandem.Data -s Tandem.API
   dotnet ef database update -p Tandem.Data -s Tandem.API
   ```
 
 **תשתית רוחבית**
-- [ ] `Result<T>` אחיד ב-Core: Success, NotFound, Forbidden, Conflict, ValidationError
-- [ ] `PagedResult<T>`: Items, Page, PageSize, TotalCount
-- [ ] ממשק `INotificationSender` ב-Core, ומימוש `LogNotificationSender` ב-Data שרק כותב את ההודעה ללוג (בלי תוכן רגיש). הערוץ נבחר לפי `Notifications:Channel` ב-appsettings, והרישום ב-DI לפיו. בשלב 8ב מוסיפים מימוש ומשנים רק את ההגדרה
-- [ ] `appsettings.json` ו-`appsettings.Development.json`
+- [x] `Result<T>` אחיד ב-Core: Success, NotFound, Forbidden, Conflict, ValidationError
+- [x] `PagedResult<T>`: Items, Page, PageSize, TotalCount
+- [x] ממשק `INotificationSender` ב-Core, ומימוש `LogNotificationSender` ב-Data שרק כותב את ההודעה ללוג (בלי תוכן רגיש). הערוץ נבחר לפי `Notifications:Channel` ב-appsettings, והרישום ב-DI לפיו. בשלב 8ב מוסיפים מימוש ומשנים רק את ההגדרה
+- [x] `appsettings.json` ו-`appsettings.Development.json`
 - [ ] Middleware לטיפול גלובלי בשגיאות: JSON אחיד (ProblemDetails), לוג ברמת Error
 - [ ] Middleware ל-CorrelationId: נוצר לכל בקשה, מוחזר ב-header, נכנס ל-logging scope
 - [ ] NLog (`NLog.Web.AspNetCore`) עם `nlog.config`; לוג Information לכל בקשה נכנסת, כולל CorrelationId

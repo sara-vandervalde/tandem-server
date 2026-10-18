@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Tandem.API.Middleware;
+using Tandem.Core.Interfaces;
 using Tandem.Data;
+using Tandem.Data.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +15,17 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 // Registered as Scoped: one DbContext per HTTP request
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
+// The notification channel is chosen in appsettings, so switching to email or SMS needs no code change
+var notificationChannel = builder.Configuration["Notifications:Channel"];
+switch (notificationChannel)
+{
+    case "Log":
+        builder.Services.AddScoped<INotificationSender, LogNotificationSender>();
+        break;
+    default:
+        throw new InvalidOperationException($"Unknown notification channel '{notificationChannel}'.");
+}
+
 builder.Services.AddControllers();
 
 // Swagger: scans the controllers and builds a documentation page for every endpoint
@@ -21,6 +35,10 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+
+// Must be first, so it catches exceptions from everything that runs after it
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     // Swagger is shown only in development, not in production
