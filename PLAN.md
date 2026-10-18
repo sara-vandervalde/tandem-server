@@ -119,7 +119,7 @@ Controller מקבל DTO ← קורא ל-Service ← ה-Service משתמש בממ
 
 ### כללים שהמורה בודקת
 
-- Core לא מפנה לשום פרויקט, ולא לשום חבילת EF Core או Npgsql. (`[Timestamp]` נמצא ב-`System.ComponentModel.DataAnnotations`, ולכן מותר.)
+- Core לא מפנה לשום פרויקט, ולא לשום חבילת EF Core או Npgsql. (ה-concurrency token מוגדר ב-Fluent API ב-Data, ולכן הישות ב-Core היא מחלקה נקייה לגמרי.)
 - כל התלויות מוזרקות דרך ה-constructor; אין `new` על Service בתוך Service.
 - DbContext, Repositories ו-Services רשומים כ-**Scoped**.
 - **להכין הסבר בעל פה:** Singleton שמחזיק Scoped נשאר עם DbContext אחד לכל חיי האפליקציה. DbContext אינו thread-safe, הוא צובר נתונים מיושנים, ובקשות במקביל ישברו אותו.
@@ -278,7 +278,7 @@ concurrency token מגן רק על **עדכון** של שורה קיימת. אם
 | --- | --- |
 | חבילה | `Npgsql.EntityFrameworkCore.PostgreSQL` ב-Data; ב-Program.cs: `UseNpgsql(...)` |
 | Connection string | `Host`, `Port`, `Username`, `Password` – לא `Server`. כולל סיסמה, ולכן **רק ב-User Secrets** |
-| Concurrency token | אין `rowversion`. משתמשים ב-`[Timestamp] public uint Version`, ש-Npgsql ממפה ל-`xmin`. (במדריך של המורה מופיע `UseXminAsConcurrencyToken()` – זו אותה עמודה, אבל בגרסאות החדשות של Npgsql המתודה הזו מסומנת כמיושנת, ולכן עדיף המאפיין) |
+| Concurrency token | אין `rowversion`. בישות: `public uint Version`. בקובץ ה-Configuration (Fluent API): `builder.Property(e => e.Version).IsRowVersion()`, ו-Npgsql ממפה אותו לעמודת המערכת `xmin`. (במדריך של המורה מופיע `UseXminAsConcurrencyToken()` – זו אותה עמודה ואותו מקום בקוד, אבל בגרסאות החדשות של Npgsql המתודה הזו מסומנת כמיושנת) |
 | תאריכים | `DateTime` ממופה ל-`timestamptz`. תאריך שנוצר עם `DateTime.Now` או שה-Kind שלו לא UTC – **זורק חריגה בשמירה**. גם תאריך שמגיע מהלקוח צריך להיות UTC |
 | Seed | תאריכים ב-`HasData` חייבים להיות עם `DateTimeKind.Utc` |
 | שמות | רגישים לאותיות גדולות וקטנות. שקוף דרך EF Core, אבל בשאילתה ידנית ב-pgAdmin צריך מירכאות: `SELECT * FROM "Events"` |
@@ -484,8 +484,11 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 
 - [ ] concurrency token על Events, Venues, Gifts, Meals ו-EventItems:
   ```csharp
-  [Timestamp]
-  public uint Version { get; set; }   // Npgsql ממפה אותו אוטומטית לעמודת המערכת xmin
+  // בישות (Core):
+  public uint Version { get; set; }
+
+  // בקובץ ה-Configuration (Data):
+  builder.Property(e => e.Version).IsRowVersion();   // Npgsql ממפה אותו לעמודת המערכת xmin
   ```
 - [ ] אישור אחראי אירוע
 - [ ] ממשק משותף `IResponsibility` ל-Venue, Gift ו-Meal, ולוגיקת תפיסה ושחרור אחת לשלושתם

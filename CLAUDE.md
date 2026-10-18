@@ -27,7 +27,7 @@
 ## כללים טכניים שאסור לשבור
 
 - **ארכיטקטורה:** `Tandem.Core` לא מפנה לשום פרויקט ולשום חבילה חיצונית. Data ו-Service מפנים ל-Core בלבד. API מכיר את Data רק לרישום ב-Program.cs. Controller לעולם לא מזריק DbContext.
-- **בסיס נתונים:** PostgreSQL עם Npgsql. concurrency token: `[Timestamp] public uint Version`. כל `DateTime` ב-UTC (`DateTime.UtcNow`) – אחרת השמירה נכשלת.
+- **בסיס נתונים:** PostgreSQL עם Npgsql. concurrency token: `public uint Version` בישות (בלי attribute), ובקובץ ה-Configuration: `builder.Property(e => e.Version).IsRowVersion();` – Npgsql ממפה אותו ל-`xmin`. כל `DateTime` ב-UTC (`DateTime.UtcNow`) – אחרת השמירה נכשלת.
 - **תחרות:** ה-Repository מתרגם `DbUpdateConcurrencyException` ל-`ConcurrencyConflictException` מ-Core; ה-Service מחזיר Conflict (409) ורושם Warning. לא תופסים `Exception` כללי.
 - **async:** כל שרשרת הקריאה async, ו-`CancellationToken` מועבר עד ה-DbContext.
 - **שאילתות:** `AsNoTracking` בקריאה בלבד, `Skip`/`Take` בתוך השאילתה, `Include` במקום לולאות (בלי N+1).
