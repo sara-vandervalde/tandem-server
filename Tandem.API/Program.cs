@@ -9,6 +9,7 @@ using Tandem.Core.Interfaces.Services;
 using Tandem.Data;
 using Tandem.Data.Notifications;
 using Tandem.Data.Repositories;
+using Tandem.Service.Authentication;
 using Tandem.Service.Mapping;
 using Tandem.Service.Services;
 
@@ -34,8 +35,18 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// JWT settings through IOptions. The signing key is a secret (User Secrets), so fail fast if it is missing or too short
+var jwtSection = builder.Configuration.GetSection(JwtSettings.SectionName);
+var jwtKey = jwtSection["Key"];
+if (string.IsNullOrEmpty(jwtKey) || jwtKey.Length < 32)
+{
+    throw new InvalidOperationException("Jwt:Key is missing or shorter than 32 characters. Set it with dotnet user-secrets.");
+}
+builder.Services.Configure<JwtSettings>(jwtSection);
+
 // Stateless helpers, safe to share across all requests
 builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddAutoMapper(typeof(UserProfile));
 
 // The notification channel is chosen in appsettings, so switching to email or SMS needs no code change

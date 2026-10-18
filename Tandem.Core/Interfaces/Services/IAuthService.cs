@@ -7,4 +7,6 @@ namespace Tandem.Core.Interfaces.Services;
 public interface IAuthService
 {
     Task<Result<UserDto>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken);
+
+    Task<Result<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
 }

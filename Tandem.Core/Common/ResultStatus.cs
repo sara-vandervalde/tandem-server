@@ -4,6 +4,7 @@ namespace Tandem.Core.Common;
 public enum ResultStatus
 {
     Success,
+    Unauthorized,
     NotFound,
     Forbidden,
     Conflict,

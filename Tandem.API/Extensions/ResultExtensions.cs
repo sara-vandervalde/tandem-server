@@ -11,6 +11,7 @@ public static class ResultExtensions
     {
         var statusCode = result.Status switch
         {
+            ResultStatus.Unauthorized => StatusCodes.Status401Unauthorized,
             ResultStatus.NotFound => StatusCodes.Status404NotFound,
             ResultStatus.Forbidden => StatusCodes.Status403Forbidden,
             ResultStatus.Conflict => StatusCodes.Status409Conflict,
