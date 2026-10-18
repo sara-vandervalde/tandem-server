@@ -402,9 +402,9 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 **חבילות ומבנה**
 - [x] התקנת PostgreSQL מקומית (installer רשמי ל-Windows, כולל pgAdmin). לרשום את סיסמת המשתמש `postgres` שנבחרת בהתקנה. מותקנת גרסה 18, פורט 5432
 - [x] `Npgsql.EntityFrameworkCore.PostgreSQL` (גרסה 9) ב-Data – 9.0.4
-- [ ] `Microsoft.EntityFrameworkCore.Design` (גרסה 9) ב-API
-- [ ] `Swashbuckle.AspNetCore` ב-API – ממשק Swagger. בתבנית של .NET 9 יש רק `AddOpenApi`, בלי ממשק גרפי
-- [ ] `dotnet tool install --global dotnet-ef`
+- [x] `Microsoft.EntityFrameworkCore.Design` (גרסה 9) ב-API – 9.0.21
+- [x] `Swashbuckle.AspNetCore` ב-API – ממשק Swagger. בתבנית של .NET 9 יש רק `AddOpenApi`, בלי ממשק גרפי. גרסה 9.0.6 (במקום `Microsoft.AspNetCore.OpenApi`)
+- [x] `dotnet tool install --global dotnet-ef` – 9.0.21
 - [ ] מחיקת קבצי הדוגמה של התבנית (WeatherForecast)
 - [ ] תיקיות ב-Core: Entities, Enums, Interfaces (Repositories, Services), DTOs, Common, Exceptions
 - [ ] שבעת ה-Enums, קובץ לכל אחד
