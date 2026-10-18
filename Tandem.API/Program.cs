@@ -32,10 +32,12 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connect
 
 // Repositories: Scoped, like the DbContext they use
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IGroupService, GroupService>();
 
 // JWT: settings (IOptions), token validation on every request, and authorization
 builder.Services.AddJwtAuthentication(builder.Configuration);
