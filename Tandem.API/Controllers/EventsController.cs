@@ -130,6 +130,57 @@ public class EventsController : ControllerBase
         return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
     }
 
+    // Address and price - the venue's responsible member
+    [HttpPut("{id:int}/venue")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateVenue(
+        [FromRoute] int id,
+        [FromBody] UpdateVenueRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _eventService.UpdateVenueAsync(id, request, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
+    }
+
+    // Description and price - the gift's responsible member
+    [HttpPut("{id:int}/gift")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateGift(
+        [FromRoute] int id,
+        [FromBody] UpdateGiftRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _eventService.UpdateGiftAsync(id, request, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
+    }
+
+    // Meal type, caterer and price - the meal's responsible member
+    [HttpPut("{id:int}/meal")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateMeal(
+        [FromRoute] int id,
+        [FromBody] UpdateMealRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _eventService.UpdateMealAsync(id, request, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
+    }
+
     // Who shares the cost when the split method is SelectedMembers
     [HttpPut("{id:int}/participants")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

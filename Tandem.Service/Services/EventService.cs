@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Tandem.Core.Common;
 using Tandem.Core.DTOs.Events;
@@ -18,6 +18,7 @@ public class EventService : IEventService
     private const string OrganizerTakenMessage = "חבר/ה אחר/ת כבר לקח/ה אחריות על האירוע";
     private const string OrganizerOnlyMessage = "רק אחראי/ת האירוע יכול/ה לבצע פעולה זו";
     private const string ClosedEventMessage = "אי אפשר לשנות אחריות באירוע שנסגר או בוטל";
+    private const string AreaChangedMessage = "התחום השתנה בינתיים. רעננו את הדף ונסו שוב";
 
     private readonly IEventRepository _eventRepository;
     private readonly IGroupRepository _groupRepository;
@@ -321,11 +322,61 @@ public class EventService : IEventService
         {
             _logger.LogWarning("Concurrency conflict: user {UserId} could not release the {Area} of event {EventId}",
                 userId, area, eventId);
-            return Result.Conflict("התחום השתנה בינתיים. רעננו את הדף ונסו שוב");
+            return Result.Conflict(AreaChangedMessage);
         }
 
         _logger.LogInformation("User {UserId} released the {Area} of event {EventId}", userId, area, eventId);
         return Result.Success();
+    }
+
+    public async Task<Result> UpdateVenueAsync(
+        int eventId, UpdateVenueRequest request, int userId, CancellationToken cancellationToken)
+    {
+        var access = await GetAreaForEditAsync(eventId, ResponsibilityArea.Venue, userId, cancellationToken);
+        if (!access.IsSuccess)
+        {
+            return access;
+        }
+
+        var venue = (Venue)access.Value!;
+        venue.Address = request.Address?.Trim();
+        venue.Price = request.Price;
+
+        return await SaveAreaAsync(eventId, ResponsibilityArea.Venue, userId, cancellationToken);
+    }
+
+    public async Task<Result> UpdateGiftAsync(
+        int eventId, UpdateGiftRequest request, int userId, CancellationToken cancellationToken)
+    {
+        var access = await GetAreaForEditAsync(eventId, ResponsibilityArea.Gift, userId, cancellationToken);
+        if (!access.IsSuccess)
+        {
+            return access;
+        }
+
+        var gift = (Gift)access.Value!;
+        gift.Description = request.Description?.Trim();
+        gift.Price = request.Price;
+
+        return await SaveAreaAsync(eventId, ResponsibilityArea.Gift, userId, cancellationToken);
+    }
+
+    public async Task<Result> UpdateMealAsync(
+        int eventId, UpdateMealRequest request, int userId, CancellationToken cancellationToken)
+    {
+        var access = await GetAreaForEditAsync(eventId, ResponsibilityArea.Meal, userId, cancellationToken);
+        if (!access.IsSuccess)
+        {
+            return access;
+        }
+
+        var meal = (Meal)access.Value!;
+        meal.MealType = request.MealType;
+        // A caterer's name means nothing for a shared or self-made meal
+        meal.CateringName = request.MealType == MealType.Catering ? request.CateringName?.Trim() : null;
+        meal.Price = request.Price;
+
+        return await SaveAreaAsync(eventId, ResponsibilityArea.Meal, userId, cancellationToken);
     }
 
     public async Task<Result> UpdateAsync(
@@ -488,6 +539,52 @@ public class EventService : IEventService
     }
 
     // A date without a time zone is taken as UTC; a local date is converted
+    // Shared by the three updates. Loads WITH tracking, so the save is protected by the area's version
+    private async Task<Result<IResponsibility>> GetAreaForEditAsync(
+        int eventId, ResponsibilityArea area, int userId, CancellationToken cancellationToken)
+    {
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken);
+        if (evt is null)
+        {
+            return Result<IResponsibility>.NotFound(EventNotFoundMessage);
+        }
+
+        // After settling, the prices are locked: the payments were calculated from them
+        if (evt.Status is EventStatus.Settled or EventStatus.Cancelled)
+        {
+            return Result<IResponsibility>.Conflict("אי אפשר לעדכן פרטים ומחיר באירוע שנסגר או בוטל");
+        }
+
+        var responsibility = GetResponsibility(evt, area);
+        if (responsibility is null)
+        {
+            return Result<IResponsibility>.NotFound("באירוע הזה אין מתנה");
+        }
+
+        return responsibility.ResponsibleId == userId
+            ? Result<IResponsibility>.Success(responsibility)
+            : Result<IResponsibility>.Forbidden("רק האחראי/ת על התחום יכול/ה לעדכן את הפרטים והמחיר");
+    }
+
+    // If the area changed since it was loaded (e.g. released at the same moment), the save is rejected: 409
+    private async Task<Result> SaveAreaAsync(
+        int eventId, ResponsibilityArea area, int userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _eventRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            _logger.LogWarning("Concurrency conflict: user {UserId} could not update the {Area} of event {EventId}",
+                userId, area, eventId);
+            return Result.Conflict(AreaChangedMessage);
+        }
+
+        _logger.LogInformation("User {UserId} updated the {Area} of event {EventId}", userId, area, eventId);
+        return Result.Success();
+    }
+
     // The interface lets one piece of code claim or release any of the three areas.
     // Null only for the gift of an event without a gift
     private static IResponsibility? GetResponsibility(Event evt, ResponsibilityArea area) => area switch

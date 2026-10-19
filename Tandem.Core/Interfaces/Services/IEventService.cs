@@ -30,6 +30,13 @@ public interface IEventService
     Task<Result> ReleaseResponsibilityAsync(
         int eventId, ResponsibilityArea area, int userId, CancellationToken cancellationToken);
 
+    // Details and price of an area: only its responsible member, until the event is settled or cancelled
+    Task<Result> UpdateVenueAsync(int eventId, UpdateVenueRequest request, int userId, CancellationToken cancellationToken);
+
+    Task<Result> UpdateGiftAsync(int eventId, UpdateGiftRequest request, int userId, CancellationToken cancellationToken);
+
+    Task<Result> UpdateMealAsync(int eventId, UpdateMealRequest request, int userId, CancellationToken cancellationToken);
+
     // Organizer only, while the event is not settled or cancelled
     Task<Result> UpdateAsync(int eventId, UpdateEventRequest request, int userId, CancellationToken cancellationToken);
 
