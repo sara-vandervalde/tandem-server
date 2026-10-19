@@ -395,12 +395,19 @@ public class EventService : IEventService
             return Result.ValidationError("אי אפשר להעביר אירוע לתאריך שעבר");
         }
 
+        // Someone may have already bought the gift: their payment must not disappear with the row
+        if (!request.HasGift && evt!.Gift?.ResponsibleId is not null)
+        {
+            return Result.Conflict("למתנה כבר יש אחראי/ת. כדי לבטל את המתנה, צריך קודם לשחרר אותה");
+        }
+
         evt!.Title = request.Title.Trim();
         evt.EventDate = eventDate;
         evt.OrganizationMode = request.OrganizationMode!.Value;
         evt.SplitMethod = request.SplitMethod!.Value;
 
-        // The gift row exists only while HasGift is on. Turning it on/off is the organizer's own action - no race
+        // The gift row exists only while HasGift is on: turning it on inserts an empty gift,
+        // turning it off deletes the row (EF deletes a required dependent that was detached from its event)
         if (request.HasGift && evt.Gift is null)
         {
             evt.Gift = new Gift();
@@ -417,7 +424,19 @@ public class EventService : IEventService
             evt.Participants.Clear();
         }
 
-        await _eventRepository.SaveChangesAsync(cancellationToken);
+        // A member may claim the gift at the very moment the organizer removes it: the gift's version
+        // no longer matches, the delete is rejected, and the organizer gets 409 instead of an error
+        try
+        {
+            await _eventRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            _logger.LogWarning("Concurrency conflict: event {EventId} changed while user {UserId} was updating it",
+                eventId, userId);
+            return Result.Conflict("האירוע השתנה בינתיים. רעננו את הדף ונסו שוב");
+        }
+
         _logger.LogInformation("Event {EventId} updated by user {UserId}", eventId, userId);
 
         return Result.Success();
