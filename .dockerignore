@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/logs/
+.vs/
+.git/
+*.user
+*.docx
+*.pdf
+ask.txt
+reply.txt

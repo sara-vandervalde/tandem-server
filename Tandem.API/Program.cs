@@ -103,18 +103,26 @@ builder.Services.AddSwaggerWithJwt();
 
 var app = builder.Build();
 
+// Applies any migration the database does not have yet, on every startup (locally and in the cloud),
+// so a new database - like the one on Render - creates its tables by itself, with no manual command
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await context.Database.MigrateAsync();
+}
+
 // Configure the HTTP request pipeline.
 
 // Must be first, so it catches exceptions from everything that runs after it
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    // Swagger is shown only in development, not in production
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Swagger in every environment: until the React client is up, it is the page the cloud link shows
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// The bare address (the link that is submitted) opens Swagger
+app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
 app.UseHttpsRedirection();
 
