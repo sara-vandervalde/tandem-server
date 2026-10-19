@@ -29,6 +29,10 @@ public class GroupAccessService
             : Result<Group>.Forbidden("רק מנהל הקבוצה יכול לבצע פעולה זו");
     }
 
+    // For taking part (creating events, claiming): members only - the Admin watches but does not take part
+    public Task<Result<Group>> EnsureMemberAsync(int groupId, int userId, CancellationToken cancellationToken) =>
+        EnsureMemberOrAdminAsync(groupId, userId, isAdmin: false, cancellationToken);
+
     // 404 if the group does not exist, 403 if the user is neither a member nor an Admin
     public async Task<Result<Group>> EnsureMemberOrAdminAsync(
         int groupId, int userId, bool isAdmin, CancellationToken cancellationToken)
