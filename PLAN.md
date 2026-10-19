@@ -460,16 +460,16 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 
 ### שלב 3: קבוצות, הזמנות ואירועים (4–5 ימים)
 
-- [ ] Repositories ו-Services לקבוצות, חברים ואירועים, עם ממשקים ב-Core
+- [x] Repositories ו-Services לקבוצות, חברים ואירועים, עם ממשקים ב-Core
 - [x] `GroupAccessService` לבדיקות הרשאה ברמת קבוצה
-- [ ] DTOs נפרדים לבקשה ולתשובה; `AutoMapper` **גרסה 14** עם Profiles (מגרסה 15 נדרש רישיון בתשלום)
+- [x] DTOs נפרדים לבקשה ולתשובה; `AutoMapper` **גרסה 14** עם Profiles (מגרסה 15 נדרש רישיון בתשלום)
 - [ ] Data Annotations על DTOs: `[Required]`, `[StringLength]`, `[EmailAddress]`, `[Range]`; ModelState נבדק דרך `[ApiController]`
-- [ ] `[FromRoute]`, `[FromQuery]`, `[FromBody]` במפורש בכל פעולה
+- [x] `[FromRoute]`, `[FromQuery]`, `[FromBody]` במפורש בכל פעולה
 - [ ] ולידציה עסקית (תאריך עבר, משתמש שאינו חבר) – ב-Service בלבד
 - [ ] סטטוסים: 201 עם `CreatedAtAction`, 204 בעדכון ובמחיקה, 404, 400
-- [ ] רשימת אירועים עם סינון (קבוצה, סטטוס, טווח תאריכים, חיפוש בכותרת), מיון ו-pagination עם `Skip`/`Take` **בתוך השאילתה**
-- [ ] Endpoint ללוח שנה לפי טווח תאריכים
-- [ ] `AsNoTracking` בכל שאילתת קריאה; `Include`/`ThenInclude` בעמוד אירוע – בלי N+1
+- [x] רשימת אירועים עם סינון (קבוצה, סטטוס, טווח תאריכים, חיפוש בכותרת), מיון ו-pagination עם `Skip`/`Take` **בתוך השאילתה**
+- [x] Endpoint ללוח שנה לפי טווח תאריכים
+- [x] `AsNoTracking` בכל שאילתת קריאה; `Include`/`ThenInclude` בעמוד אירוע – בלי N+1
 - [x] הזמנות: יצירה לרשימת אימיילים (מדלגת על חברים קיימים ועל הזמנות ממתינות), תוקף 14 יום, ביטול על ידי המנהל, רשימת "ההזמנות שלי" לפי האימייל של המשתמש המחובר, אישור (מוסיף ל-GroupMembers באותה שמירה) ודחייה
 - [x] יצירת הזמנה "שולחת הודעה" דרך `INotificationSender` – בשלב הזה רק שורה בלוג
 - [x] רק מנהל הקבוצה מזמין ומסיר חברים
@@ -478,7 +478,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [ ] מחיקת טיוטה: היוצר או מנהל הקבוצה; אירוע עם אחראי – רק האחראי
 - [ ] ביטול אירוע (`PATCH /api/events/{id}`, סטטוס Cancelled): רק אחראי האירוע; אירוע שכבר Settled ← 409
 - [x] יצירת קבוצה מוסיפה את היוצר גם כמנהל וגם לטבלת GroupMembers, באותה שמירה
-- [ ] יצירת אירוע שומרת את `CreatedById`, ויוצרת גם Venue ו-Meal ריקים, באותה שמירה
+- [x] יצירת אירוע שומרת את `CreatedById`, ויוצרת גם Venue ו-Meal ריקים, באותה שמירה
 - [ ] בחירת משתתפים (`PUT /api/events/{id}/participants`): רק אחראי האירוע, רק חברי הקבוצה (אחרת 400), החלפה של כל הרשימה; מעבר לשיטת חלוקה אחרת מוחק את הרשימה. חבר שעוזב או מוסר מהקבוצה יוצא מרשימות המשתתפים של אירועים פתוחים
 - [ ] CORS: policy בשם, שה-origins שלה נטענים מהקונפיגורציה (`Cors:AllowedOrigins` ב-appsettings), ולא כתובים בקוד
 - [ ] MVC Attributes בכל Controller: `[ApiController]`, `[Route("api/[controller]")]`, `[HttpGet("{id:int}")]` עם route constraints, `[ProducesResponseType]` לכל סטטוס אפשרי (כך Swagger מתעד גם 404 ו-409), `[Authorize]` / `[AllowAnonymous]`

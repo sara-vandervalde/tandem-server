@@ -13,6 +13,7 @@ namespace Tandem.Service.Services;
 public class EventService : IEventService
 {
     private const string EventNotFoundMessage = "האירוע לא נמצא";
+    private const int MaxCalendarDays = 366;
 
     private readonly IEventRepository _eventRepository;
     private readonly IGroupRepository _groupRepository;
@@ -73,6 +74,70 @@ public class EventService : IEventService
 
         var created = await _eventRepository.GetDetailsAsync(evt.Id, cancellationToken);
         return Result<EventDetailsDto>.Success(_mapper.Map<EventDetailsDto>(created!));
+    }
+
+    public async Task<Result<PagedResult<EventListItemDto>>> GetEventsAsync(
+        EventQuery query, int userId, bool isAdmin, CancellationToken cancellationToken)
+    {
+        if (query.GroupId is int groupId)
+        {
+            var access = await _groupAccess.EnsureMemberOrAdminAsync(groupId, userId, isAdmin, cancellationToken);
+            if (!access.IsSuccess)
+            {
+                return access.ToFailure<PagedResult<EventListItemDto>>();
+            }
+        }
+
+        var from = query.From is DateTime f ? ToUtc(f) : (DateTime?)null;
+        var to = query.To is DateTime t ? ToUtc(t) : (DateTime?)null;
+        if (from > to)
+        {
+            return Result<PagedResult<EventListItemDto>>.ValidationError("תאריך ההתחלה מאוחר מתאריך הסיום");
+        }
+
+        var normalized = new EventQuery
+        {
+            GroupId = query.GroupId,
+            Status = query.Status,
+            Search = query.Search,
+            From = from,
+            To = to,
+            SortBy = query.SortBy,
+            SortDir = query.SortDir,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+
+        var page = await _eventRepository.GetPagedAsync(normalized, isAdmin ? null : userId, cancellationToken);
+
+        return Result<PagedResult<EventListItemDto>>.Success(new PagedResult<EventListItemDto>
+        {
+            Items = _mapper.Map<List<EventListItemDto>>(page.Items),
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalCount = page.TotalCount
+        });
+    }
+
+    public async Task<Result<IReadOnlyList<EventListItemDto>>> GetCalendarAsync(
+        int groupId, CalendarQuery query, int userId, bool isAdmin, CancellationToken cancellationToken)
+    {
+        var access = await _groupAccess.EnsureMemberOrAdminAsync(groupId, userId, isAdmin, cancellationToken);
+        if (!access.IsSuccess)
+        {
+            return access.ToFailure<IReadOnlyList<EventListItemDto>>();
+        }
+
+        var from = ToUtc(query.From!.Value);
+        var to = ToUtc(query.To!.Value);
+        if (from > to || (to - from).TotalDays > MaxCalendarDays)
+        {
+            return Result<IReadOnlyList<EventListItemDto>>.ValidationError(
+                "טווח התאריכים לא תקין (עד שנה אחת, וההתחלה לפני הסיום)");
+        }
+
+        var events = await _eventRepository.GetForGroupInRangeAsync(groupId, from, to, cancellationToken);
+        return Result<IReadOnlyList<EventListItemDto>>.Success(_mapper.Map<List<EventListItemDto>>(events));
     }
 
     public async Task<Result<EventDetailsDto>> GetByIdAsync(
