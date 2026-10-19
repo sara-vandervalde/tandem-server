@@ -10,6 +10,9 @@ namespace Tandem.Service.Services;
 
 public class GroupService : IGroupService
 {
+    private const string GroupNotFoundMessage = "הקבוצה לא נמצאה";
+    private const string ManagerOnlyMessage = "רק מנהל הקבוצה יכול לבצע פעולה זו";
+
     private readonly IGroupRepository _groupRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<GroupService> _logger;
@@ -36,7 +39,7 @@ public class GroupService : IGroupService
         var group = await _groupRepository.GetDetailsAsync(groupId, cancellationToken);
         if (group is null)
         {
-            return Result<GroupDetailsDto>.NotFound("הקבוצה לא נמצאה");
+            return Result<GroupDetailsDto>.NotFound(GroupNotFoundMessage);
         }
 
         // Members see their own groups; the Admin sees every group
@@ -70,5 +73,81 @@ public class GroupService : IGroupService
         // Reloaded with the manager's and member's names for the response
         var created = await _groupRepository.GetDetailsAsync(group.Id, cancellationToken);
         return Result<GroupDetailsDto>.Success(_mapper.Map<GroupDetailsDto>(created!));
+    }
+
+    public async Task<Result> TransferManagerAsync(
+        int groupId, int newManagerId, int userId, CancellationToken cancellationToken)
+    {
+        var group = await _groupRepository.GetWithMembersForUpdateAsync(groupId, cancellationToken);
+        if (group is null)
+        {
+            return Result.NotFound(GroupNotFoundMessage);
+        }
+
+        if (group.ManagerId != userId)
+        {
+            return Result.Forbidden(ManagerOnlyMessage);
+        }
+
+        if (group.Members.All(m => m.UserId != newManagerId))
+        {
+            return Result.ValidationError("אפשר להעביר את הניהול רק לחבר/ה בקבוצה");
+        }
+
+        // Transferring to the current manager changes nothing and is not an error
+        if (group.ManagerId != newManagerId)
+        {
+            group.ManagerId = newManagerId;
+            await _groupRepository.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Group {GroupId} manager changed from {OldManagerId} to {NewManagerId}",
+                groupId, userId, newManagerId);
+        }
+
+        return Result.Success();
+    }
+
+    public async Task<Result> RemoveMemberAsync(int groupId, int memberId, int userId, CancellationToken cancellationToken)
+    {
+        var group = await _groupRepository.GetWithMembersForUpdateAsync(groupId, cancellationToken);
+        if (group is null)
+        {
+            return Result.NotFound(GroupNotFoundMessage);
+        }
+
+        var membership = group.Members.FirstOrDefault(m => m.UserId == memberId);
+        if (membership is null)
+        {
+            return Result.NotFound("החבר/ה לא נמצא/ה בקבוצה");
+        }
+
+        var isLeaving = memberId == userId;
+        if (!isLeaving && group.ManagerId != userId)
+        {
+            return Result.Forbidden(ManagerOnlyMessage);
+        }
+
+        // The group must always have a manager
+        if (memberId == group.ManagerId)
+        {
+            return group.Members.Count == 1
+                ? Result.Conflict("את/ה החבר/ה היחיד/ה בקבוצה. אפשר רק למחוק את הקבוצה")
+                : Result.Conflict("יש להעביר את ניהול הקבוצה לחבר אחר לפני העזיבה");
+        }
+
+        if (await _groupRepository.HasOpenResponsibilitiesAsync(groupId, memberId, cancellationToken))
+        {
+            return Result.Conflict("יש לשחרר את האחריות באירועים פתוחים לפני העזיבה");
+        }
+
+        // Leaving the group and leaving the open events' cost sharing are saved together
+        group.Members.Remove(membership);
+        await _groupRepository.RemoveFromOpenEventParticipantsAsync(groupId, memberId, cancellationToken);
+        await _groupRepository.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("User {MemberId} {Action} group {GroupId}",
+            memberId, isLeaving ? "left" : $"was removed by {userId} from", groupId);
+
+        return Result.Success();
     }
 }

@@ -11,4 +11,11 @@ public interface IGroupService
     Task<Result<GroupDetailsDto>> GetByIdAsync(int groupId, int userId, bool isAdmin, CancellationToken cancellationToken);
 
     Task<Result<GroupDetailsDto>> CreateAsync(CreateGroupRequest request, int userId, CancellationToken cancellationToken);
+
+    // Manager only; the new manager must already be a member. The previous manager stays as a regular member
+    Task<Result> TransferManagerAsync(int groupId, int newManagerId, int userId, CancellationToken cancellationToken);
+
+    // A member leaving (memberId == userId) or the manager removing someone.
+    // The manager cannot leave before transferring; nobody leaves with open responsibilities: 409
+    Task<Result> RemoveMemberAsync(int groupId, int memberId, int userId, CancellationToken cancellationToken);
 }

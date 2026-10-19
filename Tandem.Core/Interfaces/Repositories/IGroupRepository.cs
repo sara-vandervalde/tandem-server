@@ -22,6 +22,16 @@ public interface IGroupRepository
     Task<List<string>> GetMemberEmailsAsync(
         int groupId, IReadOnlyCollection<string> emails, CancellationToken cancellationToken);
 
+    // Tracked, with the members loaded - for changing the manager or removing a member
+    Task<Group?> GetWithMembersForUpdateAsync(int id, CancellationToken cancellationToken);
+
+    // True if the user is responsible for anything in an event of the group that is not settled or cancelled:
+    // event organizer, venue / gift / meal, or an item on the "what to bring" list
+    Task<bool> HasOpenResponsibilitiesAsync(int groupId, int userId, CancellationToken cancellationToken);
+
+    // Marks the user's rows in the cost-sharing lists of the group's open events for removal
+    Task RemoveFromOpenEventParticipantsAsync(int groupId, int userId, CancellationToken cancellationToken);
+
     void Add(Group group);
 
     // Marks a membership for insertion; saved by the next SaveChangesAsync on the same request

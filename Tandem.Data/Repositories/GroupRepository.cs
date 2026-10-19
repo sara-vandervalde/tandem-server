@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Tandem.Core.Entities;
+using Tandem.Core.Enums;
 using Tandem.Core.Interfaces.Repositories;
 
 namespace Tandem.Data.Repositories;
@@ -48,6 +49,33 @@ public class GroupRepository : IGroupRepository
             .Select(m => m.User.Email)
             .ToListAsync(cancellationToken);
 
+    public Task<Group?> GetWithMembersForUpdateAsync(int id, CancellationToken cancellationToken) =>
+        _context.Groups
+            .Include(g => g.Members)
+            .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
+
+    // One EXISTS query per kind of responsibility, all answered by the database
+    public async Task<bool> HasOpenResponsibilitiesAsync(int groupId, int userId, CancellationToken cancellationToken)
+    {
+        var openEvents = OpenEventsOf(groupId);
+
+        return await openEvents.AnyAsync(e => e.OrganizerId == userId, cancellationToken)
+               || await _context.Venues.AnyAsync(v => v.ResponsibleId == userId && openEvents.Contains(v.Event), cancellationToken)
+               || await _context.Gifts.AnyAsync(g => g.ResponsibleId == userId && openEvents.Contains(g.Event), cancellationToken)
+               || await _context.Meals.AnyAsync(m => m.ResponsibleId == userId && openEvents.Contains(m.Event), cancellationToken)
+               || await _context.EventItems.AnyAsync(i => i.AssigneeId == userId && openEvents.Contains(i.Event), cancellationToken);
+    }
+
+    public async Task RemoveFromOpenEventParticipantsAsync(int groupId, int userId, CancellationToken cancellationToken)
+    {
+        var openEvents = OpenEventsOf(groupId);
+        var participations = await _context.EventParticipants
+            .Where(p => p.UserId == userId && openEvents.Contains(p.Event))
+            .ToListAsync(cancellationToken);
+
+        _context.EventParticipants.RemoveRange(participations);
+    }
+
     // Adding the group also inserts any GroupMember rows in group.Members, in the same SaveChanges
     public void Add(Group group) => _context.Groups.Add(group);
 
@@ -55,6 +83,12 @@ public class GroupRepository : IGroupRepository
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
         _context.SaveChangesAsync(cancellationToken);
+
+    // Events whose costs are not settled yet - a member's responsibilities there still matter
+    private IQueryable<Event> OpenEventsOf(int groupId) =>
+        _context.Events.Where(e => e.GroupId == groupId
+                                   && e.Status != EventStatus.Settled
+                                   && e.Status != EventStatus.Cancelled);
 
     private IQueryable<Group> WithManagerAndMembers() =>
         _context.Groups

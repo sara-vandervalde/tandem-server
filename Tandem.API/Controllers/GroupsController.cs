@@ -56,4 +56,37 @@ public class GroupsController : ControllerBase
         // 201 with a Location header pointing to GET /api/groups/{id}
         return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
     }
+
+    // The manager hands management to another member
+    [HttpPut("{id:int}/manager")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TransferManager(
+        [FromRoute] int id,
+        [FromBody] TransferManagerRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _groupService.TransferManagerAsync(
+            id, request.UserId!.Value, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
+    }
+
+    // Leave the group (userId = yourself) or, as the manager, remove a member
+    [HttpDelete("{id:int}/members/{userId:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RemoveMember(
+        [FromRoute] int id,
+        [FromRoute] int userId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _groupService.RemoveMemberAsync(id, userId, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
+    }
 }
