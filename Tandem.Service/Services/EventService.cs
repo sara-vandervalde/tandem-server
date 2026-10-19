@@ -14,6 +14,7 @@ public class EventService : IEventService
 {
     private const string EventNotFoundMessage = "האירוע לא נמצא";
     private const int MaxCalendarDays = 366;
+    private const string OrganizerOnlyMessage = "רק אחראי/ת האירוע יכול/ה לבצע פעולה זו";
 
     private readonly IEventRepository _eventRepository;
     private readonly IGroupRepository _groupRepository;
@@ -155,6 +156,123 @@ public class EventService : IEventService
         }
 
         return Result<EventDetailsDto>.Success(_mapper.Map<EventDetailsDto>(evt));
+    }
+
+    public async Task<Result> UpdateAsync(
+        int eventId, UpdateEventRequest request, int userId, CancellationToken cancellationToken)
+    {
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken);
+        var check = CheckOrganizerCanChange(evt, userId);
+        if (check is not null)
+        {
+            return check;
+        }
+
+        var eventDate = ToUtc(request.EventDate!.Value);
+        if (eventDate.Date < DateTime.UtcNow.Date && eventDate != evt!.EventDate)
+        {
+            return Result.ValidationError("אי אפשר להעביר אירוע לתאריך שעבר");
+        }
+
+        evt!.Title = request.Title.Trim();
+        evt.EventDate = eventDate;
+        evt.OrganizationMode = request.OrganizationMode!.Value;
+        evt.SplitMethod = request.SplitMethod!.Value;
+
+        // The gift row exists only while HasGift is on. Turning it on/off is the organizer's own action - no race
+        if (request.HasGift && evt.Gift is null)
+        {
+            evt.Gift = new Gift();
+        }
+        else if (!request.HasGift && evt.Gift is not null)
+        {
+            evt.Gift = null;
+        }
+        evt.HasGift = request.HasGift;
+
+        // The chosen participants matter only for SelectedMembers
+        if (evt.SplitMethod != SplitMethod.SelectedMembers)
+        {
+            evt.Participants.Clear();
+        }
+
+        await _eventRepository.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Event {EventId} updated by user {UserId}", eventId, userId);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> CancelAsync(int eventId, int userId, CancellationToken cancellationToken)
+    {
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken);
+        if (evt is null)
+        {
+            return Result.NotFound(EventNotFoundMessage);
+        }
+
+        if (evt.OrganizerId != userId)
+        {
+            return Result.Forbidden(OrganizerOnlyMessage);
+        }
+
+        if (evt.Status == EventStatus.Settled)
+        {
+            return Result.Conflict("אי אפשר לבטל אירוע שהחשבון שלו כבר נסגר");
+        }
+
+        // Cancelling twice is not an error
+        if (evt.Status != EventStatus.Cancelled)
+        {
+            evt.Status = EventStatus.Cancelled;
+            await _eventRepository.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Event {EventId} cancelled by user {UserId}", eventId, userId);
+        }
+
+        return Result.Success();
+    }
+
+    public async Task<Result> DeleteAsync(int eventId, int userId, CancellationToken cancellationToken)
+    {
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken);
+        if (evt is null)
+        {
+            return Result.NotFound(EventNotFoundMessage);
+        }
+
+        var allowed = evt.OrganizerId is null
+            ? evt.CreatedById == userId || evt.Group.ManagerId == userId
+            : evt.OrganizerId == userId;
+
+        if (!allowed)
+        {
+            return Result.Forbidden(evt.OrganizerId is null
+                ? "טיוטה יכולים למחוק רק מי שיצר/ה אותה או מנהל הקבוצה"
+                : OrganizerOnlyMessage);
+        }
+
+        _eventRepository.Remove(evt);
+        await _eventRepository.SaveChangesAsync(cancellationToken);
+        _logger.LogWarning("Event {EventId} deleted by user {UserId}", eventId, userId);
+
+        return Result.Success();
+    }
+
+    // Shared by the organizer's edit actions: exists, is the organizer, still open
+    private static Result? CheckOrganizerCanChange(Event? evt, int userId)
+    {
+        if (evt is null)
+        {
+            return Result.NotFound(EventNotFoundMessage);
+        }
+
+        if (evt.OrganizerId != userId)
+        {
+            return Result.Forbidden(OrganizerOnlyMessage);
+        }
+
+        return evt.Status is EventStatus.Settled or EventStatus.Cancelled
+            ? Result.Conflict("אי אפשר לשנות אירוע שנסגר או בוטל")
+            : null;
     }
 
     // A date without a time zone is taken as UTC; a local date is converted

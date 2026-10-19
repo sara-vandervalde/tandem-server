@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
@@ -67,7 +68,9 @@ switch (notificationChannel)
         throw new InvalidOperationException($"Unknown notification channel '{notificationChannel}'.");
 }
 
-builder.Services.AddControllers();
+// Enums are sent and received by name ("Solo", "Cancelled") instead of numbers
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // Swagger: a documentation page for every endpoint, with an Authorize button for the JWT
 builder.Services.AddSwaggerWithJwt();

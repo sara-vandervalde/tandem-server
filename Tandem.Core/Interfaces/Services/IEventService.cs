@@ -16,6 +16,15 @@ public interface IEventService
     Task<Result<IReadOnlyList<EventListItemDto>>> GetCalendarAsync(
         int groupId, CalendarQuery query, int userId, bool isAdmin, CancellationToken cancellationToken);
 
+    // Organizer only, while the event is not settled or cancelled
+    Task<Result> UpdateAsync(int eventId, UpdateEventRequest request, int userId, CancellationToken cancellationToken);
+
+    // Organizer only; a settled event cannot be cancelled
+    Task<Result> CancelAsync(int eventId, int userId, CancellationToken cancellationToken);
+
+    // Draft: its creator or the group manager. With an organizer: the organizer only
+    Task<Result> DeleteAsync(int eventId, int userId, CancellationToken cancellationToken);
+
     // Members of the event's group, and the Admin
     Task<Result<EventDetailsDto>> GetByIdAsync(int eventId, int userId, bool isAdmin, CancellationToken cancellationToken);
 }
