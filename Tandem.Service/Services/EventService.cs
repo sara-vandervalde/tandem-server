@@ -4,6 +4,7 @@ using Tandem.Core.Common;
 using Tandem.Core.DTOs.Events;
 using Tandem.Core.Entities;
 using Tandem.Core.Enums;
+using Tandem.Core.Exceptions;
 using Tandem.Core.Interfaces.Repositories;
 using Tandem.Core.Interfaces.Services;
 using Tandem.Service.Authorization;
@@ -14,6 +15,7 @@ public class EventService : IEventService
 {
     private const string EventNotFoundMessage = "האירוע לא נמצא";
     private const int MaxCalendarDays = 366;
+    private const string OrganizerTakenMessage = "חבר/ה אחר/ת כבר לקח/ה אחריות על האירוע";
     private const string OrganizerOnlyMessage = "רק אחראי/ת האירוע יכול/ה לבצע פעולה זו";
 
     private readonly IEventRepository _eventRepository;
@@ -151,6 +153,59 @@ public class EventService : IEventService
         }
 
         return Result<EventDetailsDto>.Success(_mapper.Map<EventDetailsDto>(evt));
+    }
+
+    public async Task<Result<EventDetailsDto>> ClaimOrganizerAsync(
+        int eventId, int userId, CancellationToken cancellationToken)
+    {
+        // 1. Load WITH tracking: EF remembers the row's version (xmin) as it was at this moment
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken);
+        if (evt is null)
+        {
+            return Result<EventDetailsDto>.NotFound(EventNotFoundMessage);
+        }
+
+        // 2. Permission: members only (the Admin views but does not take part)
+        if (!await _groupRepository.IsMemberAsync(evt.GroupId, userId, cancellationToken))
+        {
+            return Result<EventDetailsDto>.Forbidden("רק חברי הקבוצה יכולים לקחת אחריות על האירוע");
+        }
+
+        if (evt.Status is EventStatus.Settled or EventStatus.Cancelled)
+        {
+            return Result<EventDetailsDto>.Conflict("אי אפשר לקחת אחריות על אירוע שנסגר או בוטל");
+        }
+
+        // 3. Business check: already mine = nothing to do (a repeated PUT gives the same result)
+        if (evt.OrganizerId != userId)
+        {
+            if (evt.OrganizerId is not null)
+            {
+                return Result<EventDetailsDto>.Conflict(OrganizerTakenMessage);
+            }
+
+            // 4. Claim and save. Two members who passed step 3 at the same moment both reach here:
+            //    the first save wins, the second one's UPDATE finds a different version and is rejected
+            evt.OrganizerId = userId;
+            evt.Status = EventStatus.Organizing;
+
+            try
+            {
+                await _eventRepository.SaveChangesAsync(cancellationToken);
+            }
+            catch (ConcurrencyConflictException)
+            {
+                // 5. Lost the race: an expected situation, handled - so Warning, not Error
+                _logger.LogWarning("Concurrency conflict: user {UserId} lost the race to organize event {EventId}",
+                    userId, eventId);
+                return Result<EventDetailsDto>.Conflict(OrganizerTakenMessage);
+            }
+
+            _logger.LogInformation("User {UserId} is now the organizer of event {EventId}", userId, eventId);
+        }
+
+        var updated = await _eventRepository.GetDetailsAsync(eventId, cancellationToken);
+        return Result<EventDetailsDto>.Success(_mapper.Map<EventDetailsDto>(updated!));
     }
 
     public async Task<Result> UpdateAsync(

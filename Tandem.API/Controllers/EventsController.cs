@@ -81,6 +81,21 @@ public class EventsController : ControllerBase
         return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
     }
 
+    // "I am the organizer". 200 also when it is already yours; 409 when someone else got it first
+    [HttpPut("{id:int}/organizer")]
+    [ProducesResponseType(typeof(EventDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<EventDetailsDto>> ClaimOrganizer(
+        [FromRoute] int id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _eventService.ClaimOrganizerAsync(id, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : this.ToFailureResult(result);
+    }
+
     // Who shares the cost when the split method is SelectedMembers
     [HttpPut("{id:int}/participants")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

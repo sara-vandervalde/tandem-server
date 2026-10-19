@@ -3,6 +3,7 @@ using Tandem.Core.Common;
 using Tandem.Core.DTOs.Events;
 using Tandem.Core.Entities;
 using Tandem.Core.Enums;
+using Tandem.Core.Exceptions;
 using Tandem.Core.Interfaces.Repositories;
 
 namespace Tandem.Data.Repositories;
@@ -116,6 +117,19 @@ public class EventRepository : IEventRepository
     // Adding the event also inserts its Venue and Meal (set on the navigation properties) in the same SaveChanges
     public void Add(Event evt) => _context.Events.Add(evt);
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
-        _context.SaveChangesAsync(cancellationToken);
+    // Events, venues, gifts, meals and items carry a concurrency token (xmin). If another request changed
+    // the row after we loaded it, EF's UPDATE matches no row and throws DbUpdateConcurrencyException.
+    // It is translated here to Core's exception, so the service never needs to know EF Core.
+    // Only this specific exception is caught - anything else is a real error for the global handler
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new ConcurrencyConflictException(exception);
+        }
+    }
 }

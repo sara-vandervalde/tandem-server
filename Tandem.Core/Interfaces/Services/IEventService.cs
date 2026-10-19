@@ -16,6 +16,10 @@ public interface IEventService
     Task<Result<IReadOnlyList<EventListItemDto>>> GetCalendarAsync(
         int groupId, CalendarQuery query, CancellationToken cancellationToken);
 
+    // "I am the organizer": any member, only while the event has no organizer.
+    // Already yours: success (idempotent). Taken - before or at the same moment (concurrency token): 409
+    Task<Result<EventDetailsDto>> ClaimOrganizerAsync(int eventId, int userId, CancellationToken cancellationToken);
+
     // Organizer only, while the event is not settled or cancelled
     Task<Result> UpdateAsync(int eventId, UpdateEventRequest request, int userId, CancellationToken cancellationToken);
 
