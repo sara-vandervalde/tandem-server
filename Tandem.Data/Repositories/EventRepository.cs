@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Tandem.Core.Common;
 using Tandem.Core.DTOs.Events;
 using Tandem.Core.Entities;
@@ -108,7 +108,9 @@ public class EventRepository : IEventRepository
     public Task<Event?> GetForUpdateAsync(int id, CancellationToken cancellationToken) =>
         _context.Events
             .Include(e => e.Group)
+            .Include(e => e.Venue)
             .Include(e => e.Gift)
+            .Include(e => e.Meal)
             .Include(e => e.Participants)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 

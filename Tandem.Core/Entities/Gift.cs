@@ -1,7 +1,7 @@
 namespace Tandem.Core.Entities;
 
 // Exists only when the event has HasGift = true
-public class Gift
+public class Gift : IResponsibility
 {
     public int Id { get; set; }
 

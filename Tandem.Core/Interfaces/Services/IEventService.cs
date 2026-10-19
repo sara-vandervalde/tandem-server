@@ -1,5 +1,6 @@
 using Tandem.Core.Common;
 using Tandem.Core.DTOs.Events;
+using Tandem.Core.Enums;
 
 namespace Tandem.Core.Interfaces.Services;
 
@@ -19,6 +20,15 @@ public interface IEventService
     // "I am the organizer": any member, only while the event has no organizer.
     // Already yours: success (idempotent). Taken - before or at the same moment (concurrency token): 409
     Task<Result<EventDetailsDto>> ClaimOrganizerAsync(int eventId, int userId, CancellationToken cancellationToken);
+
+    // Venue / gift / meal. Open: any member; Solo: the organizer only. Already yours: success (idempotent).
+    // Taken - before or at the same moment (concurrency token): 409
+    Task<Result<EventDetailsDto>> ClaimResponsibilityAsync(
+        int eventId, ResponsibilityArea area, int userId, CancellationToken cancellationToken);
+
+    // Only the member who holds the area. It becomes free again, and the price they entered is cleared
+    Task<Result> ReleaseResponsibilityAsync(
+        int eventId, ResponsibilityArea area, int userId, CancellationToken cancellationToken);
 
     // Organizer only, while the event is not settled or cancelled
     Task<Result> UpdateAsync(int eventId, UpdateEventRequest request, int userId, CancellationToken cancellationToken);

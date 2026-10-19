@@ -4,6 +4,7 @@ using Tandem.API.Extensions;
 using Tandem.API.Filters;
 using Tandem.Core.Common;
 using Tandem.Core.DTOs.Events;
+using Tandem.Core.Enums;
 using Tandem.Core.Interfaces.Services;
 
 namespace Tandem.API.Controllers;
@@ -94,6 +95,39 @@ public class EventsController : ControllerBase
         var result = await _eventService.ClaimOrganizerAsync(id, User.GetUserId(), cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : this.ToFailureResult(result);
+    }
+
+    // One action for /venue, /gift and /meal: the route constraint allows only these three,
+    // and MVC turns the text into the ResponsibilityArea enum (case does not matter)
+    [HttpPut("{id:int}/{area:regex(^(venue|gift|meal)$)}/responsible")]
+    [ProducesResponseType(typeof(EventDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<EventDetailsDto>> ClaimResponsibility(
+        [FromRoute] int id,
+        [FromRoute] ResponsibilityArea area,
+        CancellationToken cancellationToken)
+    {
+        var result = await _eventService.ClaimResponsibilityAsync(id, area, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : this.ToFailureResult(result);
+    }
+
+    // "I give it up": the area becomes free again
+    [HttpDelete("{id:int}/{area:regex(^(venue|gift|meal)$)}/responsible")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ReleaseResponsibility(
+        [FromRoute] int id,
+        [FromRoute] ResponsibilityArea area,
+        CancellationToken cancellationToken)
+    {
+        var result = await _eventService.ReleaseResponsibilityAsync(id, area, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
     }
 
     // Who shares the cost when the split method is SelectedMembers

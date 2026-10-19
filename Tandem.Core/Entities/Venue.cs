@@ -2,7 +2,7 @@ namespace Tandem.Core.Entities;
 
 // Created together with its event, with no responsible member.
 // Claiming it is an update of ResponsibleId, protected by Version
-public class Venue
+public class Venue : IResponsibility
 {
     public int Id { get; set; }
 

@@ -1,4 +1,4 @@
-using Tandem.Core.Common;
+﻿using Tandem.Core.Common;
 using Tandem.Core.DTOs.Events;
 using Tandem.Core.Entities;
 
@@ -16,7 +16,7 @@ public interface IEventRepository
     // The group calendar: events between two dates, by date (read-only)
     Task<List<Event>> GetForGroupInRangeAsync(int groupId, DateTime from, DateTime to, CancellationToken cancellationToken);
 
-    // Tracked, with the group, gift and participants - for editing, cancelling or deleting
+    // Tracked, with the group, venue, gift, meal and participants - for editing, claiming, cancelling or deleting
     Task<Event?> GetForUpdateAsync(int id, CancellationToken cancellationToken);
 
     void Add(Event evt);

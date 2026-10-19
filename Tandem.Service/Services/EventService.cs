@@ -17,6 +17,7 @@ public class EventService : IEventService
     private const int MaxCalendarDays = 366;
     private const string OrganizerTakenMessage = "חבר/ה אחר/ת כבר לקח/ה אחריות על האירוע";
     private const string OrganizerOnlyMessage = "רק אחראי/ת האירוע יכול/ה לבצע פעולה זו";
+    private const string ClosedEventMessage = "אי אפשר לשנות אחריות באירוע שנסגר או בוטל";
 
     private readonly IEventRepository _eventRepository;
     private readonly IGroupRepository _groupRepository;
@@ -208,6 +209,125 @@ public class EventService : IEventService
         return Result<EventDetailsDto>.Success(_mapper.Map<EventDetailsDto>(updated!));
     }
 
+    public async Task<Result<EventDetailsDto>> ClaimResponsibilityAsync(
+        int eventId, ResponsibilityArea area, int userId, CancellationToken cancellationToken)
+    {
+        // 1. Load WITH tracking: EF remembers the version (xmin) of the venue / gift / meal row
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken);
+        if (evt is null)
+        {
+            return Result<EventDetailsDto>.NotFound(EventNotFoundMessage);
+        }
+
+        // 2. Permission: members only; in Solo the organizer takes every area alone
+        if (!await _groupRepository.IsMemberAsync(evt.GroupId, userId, cancellationToken))
+        {
+            return Result<EventDetailsDto>.Forbidden("רק חברי הקבוצה יכולים לקחת אחריות");
+        }
+
+        if (evt.OrganizationMode == OrganizationMode.Solo && evt.OrganizerId != userId)
+        {
+            return Result<EventDetailsDto>.Forbidden("באירוע במצב Solo רק אחראי/ת האירוע לוקח/ת את התחומים");
+        }
+
+        // 3. Business checks
+        if (evt.OrganizerId is null)
+        {
+            return Result<EventDetailsDto>.Conflict("קודם מישהו/י צריך/ה לקחת אחריות על האירוע");
+        }
+
+        if (evt.Status is EventStatus.Settled or EventStatus.Cancelled)
+        {
+            return Result<EventDetailsDto>.Conflict(ClosedEventMessage);
+        }
+
+        var responsibility = GetResponsibility(evt, area);
+        if (responsibility is null)
+        {
+            return Result<EventDetailsDto>.NotFound("באירוע הזה אין מתנה");
+        }
+
+        // Already mine = nothing to do (a repeated PUT gives the same result)
+        if (responsibility.ResponsibleId != userId)
+        {
+            if (responsibility.ResponsibleId is not null)
+            {
+                return Result<EventDetailsDto>.Conflict(AreaTakenMessage(area));
+            }
+
+            // 4. Claim and save. Two members who passed step 3 at the same moment both reach here:
+            //    the first save wins, the second one's UPDATE finds a different version and is rejected
+            responsibility.ResponsibleId = userId;
+
+            try
+            {
+                await _eventRepository.SaveChangesAsync(cancellationToken);
+            }
+            catch (ConcurrencyConflictException)
+            {
+                // 5. Lost the race: an expected situation, handled - so Warning, not Error
+                _logger.LogWarning("Concurrency conflict: user {UserId} lost the race for the {Area} of event {EventId}",
+                    userId, area, eventId);
+                return Result<EventDetailsDto>.Conflict(AreaTakenMessage(area));
+            }
+
+            _logger.LogInformation("User {UserId} is now responsible for the {Area} of event {EventId}",
+                userId, area, eventId);
+        }
+
+        var updated = await _eventRepository.GetDetailsAsync(eventId, cancellationToken);
+        return Result<EventDetailsDto>.Success(_mapper.Map<EventDetailsDto>(updated!));
+    }
+
+    public async Task<Result> ReleaseResponsibilityAsync(
+        int eventId, ResponsibilityArea area, int userId, CancellationToken cancellationToken)
+    {
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken);
+        if (evt is null)
+        {
+            return Result.NotFound(EventNotFoundMessage);
+        }
+
+        if (evt.Status is EventStatus.Settled or EventStatus.Cancelled)
+        {
+            return Result.Conflict(ClosedEventMessage);
+        }
+
+        var responsibility = GetResponsibility(evt, area);
+        if (responsibility is null)
+        {
+            return Result.NotFound("באירוע הזה אין מתנה");
+        }
+
+        if (responsibility.ResponsibleId is null)
+        {
+            return Result.Conflict("אין אחראי/ת על התחום הזה");
+        }
+
+        if (responsibility.ResponsibleId != userId)
+        {
+            return Result.Forbidden("רק מי שלקח/ה את האחריות יכול/ה לשחרר אותה");
+        }
+
+        // The price is what the responsible member paid, so it leaves with them
+        responsibility.ResponsibleId = null;
+        responsibility.Price = null;
+
+        try
+        {
+            await _eventRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            _logger.LogWarning("Concurrency conflict: user {UserId} could not release the {Area} of event {EventId}",
+                userId, area, eventId);
+            return Result.Conflict("התחום השתנה בינתיים. רעננו את הדף ונסו שוב");
+        }
+
+        _logger.LogInformation("User {UserId} released the {Area} of event {EventId}", userId, area, eventId);
+        return Result.Success();
+    }
+
     public async Task<Result> UpdateAsync(
         int eventId, UpdateEventRequest request, int userId, CancellationToken cancellationToken)
     {
@@ -368,6 +488,27 @@ public class EventService : IEventService
     }
 
     // A date without a time zone is taken as UTC; a local date is converted
+    // The interface lets one piece of code claim or release any of the three areas.
+    // Null only for the gift of an event without a gift
+    private static IResponsibility? GetResponsibility(Event evt, ResponsibilityArea area) => area switch
+    {
+        ResponsibilityArea.Venue => evt.Venue,
+        ResponsibilityArea.Gift => evt.Gift,
+        ResponsibilityArea.Meal => evt.Meal,
+        _ => throw new ArgumentOutOfRangeException(nameof(area))
+    };
+
+    private static string AreaTakenMessage(ResponsibilityArea area)
+    {
+        var name = area switch
+        {
+            ResponsibilityArea.Venue => "המקום",
+            ResponsibilityArea.Gift => "המתנה",
+            _ => "הארוחה"
+        };
+        return $"חבר/ה אחר/ת כבר לקח/ה אחריות על {name}";
+    }
+
     private static DateTime ToUtc(DateTime date) => date.Kind switch
     {
         DateTimeKind.Utc => date,

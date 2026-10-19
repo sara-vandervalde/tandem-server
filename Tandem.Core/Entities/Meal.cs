@@ -3,7 +3,7 @@ using Tandem.Core.Enums;
 namespace Tandem.Core.Entities;
 
 // Created together with its event, with no responsible member
-public class Meal
+public class Meal : IResponsibility
 {
     public int Id { get; set; }
 
