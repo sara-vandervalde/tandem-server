@@ -120,15 +120,10 @@ public class EventService : IEventService
         });
     }
 
+    // Access (member or Admin) is checked before this runs, by the [RequireGroupMember] filter on the endpoint
     public async Task<Result<IReadOnlyList<EventListItemDto>>> GetCalendarAsync(
-        int groupId, CalendarQuery query, int userId, bool isAdmin, CancellationToken cancellationToken)
+        int groupId, CalendarQuery query, CancellationToken cancellationToken)
     {
-        var access = await _groupAccess.EnsureMemberOrAdminAsync(groupId, userId, isAdmin, cancellationToken);
-        if (!access.IsSuccess)
-        {
-            return access.ToFailure<IReadOnlyList<EventListItemDto>>();
-        }
-
         var from = ToUtc(query.From!.Value);
         var to = ToUtc(query.To!.Value);
         if (from > to || (to - from).TotalDays > MaxCalendarDays)
@@ -198,6 +193,48 @@ public class EventService : IEventService
 
         await _eventRepository.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Event {EventId} updated by user {UserId}", eventId, userId);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> SetParticipantsAsync(
+        int eventId, SetParticipantsRequest request, int userId, CancellationToken cancellationToken)
+    {
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken);
+        var check = CheckOrganizerCanChange(evt, userId);
+        if (check is not null)
+        {
+            return check;
+        }
+
+        if (evt!.SplitMethod != SplitMethod.SelectedMembers)
+        {
+            return Result.Conflict("בחירת משתתפים אפשרית רק בשיטת החלוקה \"משתתפים נבחרים\"");
+        }
+
+        var chosen = request.UserIds.Distinct().ToList();
+        var memberIds = await _groupRepository.GetMemberIdsAsync(evt.GroupId, cancellationToken);
+        if (chosen.Except(memberIds).Any())
+        {
+            return Result.ValidationError("אפשר לבחור רק חברים בקבוצה");
+        }
+
+        // Replace the list by its difference: rows no longer chosen are deleted, new ones are inserted,
+        // and members who stay are left untouched (re-adding the same key would clash with the tracked row)
+        foreach (var removed in evt.Participants.Where(p => !chosen.Contains(p.UserId)).ToList())
+        {
+            evt.Participants.Remove(removed);
+        }
+
+        var existingIds = evt.Participants.Select(p => p.UserId).ToList();
+        foreach (var participantId in chosen.Except(existingIds))
+        {
+            evt.Participants.Add(new EventParticipant { EventId = eventId, UserId = participantId });
+        }
+
+        await _eventRepository.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Event {EventId}: {Count} participants set by user {UserId}",
+            eventId, chosen.Count, userId);
 
         return Result.Success();
     }

@@ -42,6 +42,12 @@ public class GroupRepository : IGroupRepository
     public Task<bool> IsMemberAsync(int groupId, int userId, CancellationToken cancellationToken) =>
         _context.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, cancellationToken);
 
+    public Task<List<int>> GetMemberIdsAsync(int groupId, CancellationToken cancellationToken) =>
+        _context.GroupMembers
+            .Where(m => m.GroupId == groupId)
+            .Select(m => m.UserId)
+            .ToListAsync(cancellationToken);
+
     public Task<List<string>> GetMemberEmailsAsync(
         int groupId, IReadOnlyCollection<string> emails, CancellationToken cancellationToken) =>
         _context.GroupMembers

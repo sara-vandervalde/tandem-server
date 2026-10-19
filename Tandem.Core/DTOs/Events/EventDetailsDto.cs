@@ -35,4 +35,7 @@ public class EventDetailsDto
     public GiftDto? Gift { get; init; }
 
     public MealDto Meal { get; init; } = new();
+
+    // Who shares the cost - filled only when SplitMethod is SelectedMembers
+    public IReadOnlyList<ParticipantDto> Participants { get; init; } = [];
 }

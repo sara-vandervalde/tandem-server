@@ -374,7 +374,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 | 0 | הקמה: Solution, הפניות, GitHub | 1 | ✅ הושלם |
 | 1 | תשתית: חבילות, ישויות, DbContext, Migration ראשון, Seed, Middleware, NLog | 2–3 | ✅ הושלם |
 | 2 | הרשמה, התחברות, JWT, roles | 2 | ✅ הושלם |
-| 3 | קבוצות, הזמנות ואירועים: CRUD, DTOs, AutoMapper, סינון ו-pagination | 4–5 | ⏳ הבא |
+| 3 | קבוצות, הזמנות ואירועים: CRUD, DTOs, AutoMapper, סינון ו-pagination | 4–5 | ✅ הושלם |
 | R1–R2 | ריאקט: הקמה, התחברות, שלד האתר | 2–3 | |
 | 4 | **הלב:** תפיסת אחריות (אירוע, מקום, מתנה, ארוחה) ופריטים, concurrency token, 409, סטטוס אוטומטי | 3.5–4.5 | |
 | R3–R4 | ריאקט: מסכים, לוח שנה, טופס אירוע, טיפול ב-409 | 3–4 | |
@@ -458,15 +458,15 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 
 **בדיקת סיום:** בלי token – 401; Member שניגש ל-endpoint של Admin – 403.
 
-### שלב 3: קבוצות, הזמנות ואירועים (4–5 ימים)
+### שלב 3: קבוצות, הזמנות ואירועים (4–5 ימים) ✅
 
 - [x] Repositories ו-Services לקבוצות, חברים ואירועים, עם ממשקים ב-Core
 - [x] `GroupAccessService` לבדיקות הרשאה ברמת קבוצה
 - [x] DTOs נפרדים לבקשה ולתשובה; `AutoMapper` **גרסה 14** עם Profiles (מגרסה 15 נדרש רישיון בתשלום)
-- [ ] Data Annotations על DTOs: `[Required]`, `[StringLength]`, `[EmailAddress]`, `[Range]`; ModelState נבדק דרך `[ApiController]`
+- [x] Data Annotations על DTOs: `[Required]`, `[StringLength]`, `[EmailAddress]`, `[Range]`; ModelState נבדק דרך `[ApiController]`
 - [x] `[FromRoute]`, `[FromQuery]`, `[FromBody]` במפורש בכל פעולה
-- [ ] ולידציה עסקית (תאריך עבר, משתמש שאינו חבר) – ב-Service בלבד
-- [ ] סטטוסים: 201 עם `CreatedAtAction`, 204 בעדכון ובמחיקה, 404, 400
+- [x] ולידציה עסקית (תאריך עבר, משתמש שאינו חבר) – ב-Service בלבד
+- [x] סטטוסים: 201 עם `CreatedAtAction`, 204 בעדכון ובמחיקה, 404, 400
 - [x] רשימת אירועים עם סינון (קבוצה, סטטוס, טווח תאריכים, חיפוש בכותרת), מיון ו-pagination עם `Skip`/`Take` **בתוך השאילתה**
 - [x] Endpoint ללוח שנה לפי טווח תאריכים
 - [x] `AsNoTracking` בכל שאילתת קריאה; `Include`/`ThenInclude` בעמוד אירוע – בלי N+1
@@ -479,10 +479,10 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 - [x] ביטול אירוע (`PATCH /api/events/{id}`, סטטוס Cancelled): רק אחראי האירוע; אירוע שכבר Settled ← 409
 - [x] יצירת קבוצה מוסיפה את היוצר גם כמנהל וגם לטבלת GroupMembers, באותה שמירה
 - [x] יצירת אירוע שומרת את `CreatedById`, ויוצרת גם Venue ו-Meal ריקים, באותה שמירה
-- [ ] בחירת משתתפים (`PUT /api/events/{id}/participants`): רק אחראי האירוע, רק חברי הקבוצה (אחרת 400), החלפה של כל הרשימה; מעבר לשיטת חלוקה אחרת מוחק את הרשימה. חבר שעוזב או מוסר מהקבוצה יוצא מרשימות המשתתפים של אירועים פתוחים
-- [ ] CORS: policy בשם, שה-origins שלה נטענים מהקונפיגורציה (`Cors:AllowedOrigins` ב-appsettings), ולא כתובים בקוד
-- [ ] MVC Attributes בכל Controller: `[ApiController]`, `[Route("api/[controller]")]`, `[HttpGet("{id:int}")]` עם route constraints, `[ProducesResponseType]` לכל סטטוס אפשרי (כך Swagger מתעד גם 404 ו-409), `[Authorize]` / `[AllowAnonymous]`
-- [ ] Action Filter מותאם אחד לפחות כ-Attribute, למשל `[RequireGroupMember]` שבודק חברות בקבוצה לפני הפעולה
+- [x] בחירת משתתפים (`PUT /api/events/{id}/participants`): רק אחראי האירוע, רק חברי הקבוצה (אחרת 400), החלפה של כל הרשימה; מעבר לשיטת חלוקה אחרת מוחק את הרשימה. חבר שעוזב או מוסר מהקבוצה יוצא מרשימות המשתתפים של אירועים פתוחים
+- [x] CORS: policy בשם, שה-origins שלה נטענים מהקונפיגורציה (`Cors:AllowedOrigins` ב-appsettings), ולא כתובים בקוד
+- [x] MVC Attributes בכל Controller: `[ApiController]`, `[Route("api/[controller]")]`, `[HttpGet("{id:int}")]` עם route constraints, `[ProducesResponseType]` לכל סטטוס אפשרי (כך Swagger מתעד גם 404 ו-409), `[Authorize]` / `[AllowAnonymous]`
+- [x] Action Filter מותאם אחד לפחות כ-Attribute, למשל `[RequireGroupMember]` שבודק חברות בקבוצה לפני הפעולה
 
 **בדיקת סיום:** אף Controller לא מזריק DbContext; כל endpoint מתועד ב-Swagger.
 
@@ -656,14 +656,14 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 | | דרישה | שלב |
 | --- | --- | --- |
 | ☐ | 1. REST, סטטוסים 200/201+Location/204/400/401/403/404/409, Swagger | 2, 3, 4 |
-| ☐ | 2. FromRoute/FromQuery/FromBody, Data Annotations, ModelState, ולידציה עסקית ב-Service | 3 |
+| ☑ | 2. FromRoute/FromQuery/FromBody, Data Annotations, ModelState, ולידציה עסקית ב-Service | 3 |
 | ☑ | 3. ארבעה פרויקטים, כיוון תלויות נכון, Core נקי | 0 |
 | ☐ | 4. DI ב-constructor, lifetimes מודעים, הסבר Singleton מול Scoped | 1 |
 | ☐ | 5. Code-First, DbSet לכל ישות, שתי migrations לפחות, connection string מהקונפיגורציה, Seed | 1, 4/6 |
-| ☐ | 6. CRUD מלא, LINQ עם סינון ומיון, Skip/Take בשאילתה, AsNoTracking | 3 |
+| ☑ | 6. CRUD מלא, LINQ עם סינון ומיון, Skip/Take בשאילתה, AsNoTracking | 3 |
 | ☐ | 7. one-to-many, many-to-many, Include/ThenInclude, Fluent API, בלי N+1 | 1, 3, 6 |
 | ☐ | 5א. שלוש migrations: Init, AddBanksAndSettlements, AddEventMessages | 1, 6, 8א |
-| ☐ | 8. DTOs נפרדים ל-request ול-response, AutoMapper Profiles | 3 |
+| ☑ | 8. DTOs נפרדים ל-request ול-response, AutoMapper Profiles | 3 |
 | ☐ | 9. async מקצה לקצה, CancellationToken | 1 והלאה |
 | ☑ | 10. Middleware לשגיאות ול-CorrelationId, סדר pipeline נכון | 1 |
 | ☑ | 11. appsettings לפי סביבה, IOptions, User Secrets, אין סודות ב-repo | 1, 2 |

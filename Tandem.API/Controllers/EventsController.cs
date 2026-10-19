@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tandem.API.Extensions;
+using Tandem.API.Filters;
 using Tandem.Core.Common;
 using Tandem.Core.DTOs.Events;
 using Tandem.Core.Interfaces.Services;
@@ -35,8 +36,10 @@ public class EventsController : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : this.ToFailureResult(result);
     }
 
-    // The group calendar. The leading "/" makes the route absolute, so it is nested under the group
+    // The group calendar. The leading "/" makes the route absolute, so it is nested under the group.
+    // [RequireGroupMember] checks membership before the action runs
     [HttpGet("/api/groups/{groupId:int}/events")]
+    [RequireGroupMember]
     [ProducesResponseType(typeof(IReadOnlyList<EventListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -46,8 +49,7 @@ public class EventsController : ControllerBase
         [FromQuery] CalendarQuery query,
         CancellationToken cancellationToken)
     {
-        var result = await _eventService.GetCalendarAsync(
-            groupId, query, User.GetUserId(), User.IsInRole("Admin"), cancellationToken);
+        var result = await _eventService.GetCalendarAsync(groupId, query, cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : this.ToFailureResult(result);
     }
@@ -75,6 +77,23 @@ public class EventsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _eventService.UpdateAsync(id, request, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
+    }
+
+    // Who shares the cost when the split method is SelectedMembers
+    [HttpPut("{id:int}/participants")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SetParticipants(
+        [FromRoute] int id,
+        [FromBody] SetParticipantsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _eventService.SetParticipantsAsync(id, request, User.GetUserId(), cancellationToken);
 
         return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
     }

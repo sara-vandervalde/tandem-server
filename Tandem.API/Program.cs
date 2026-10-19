@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
 using Tandem.API.Extensions;
@@ -70,7 +71,32 @@ switch (notificationChannel)
 
 // Enums are sent and received by name ("Solo", "Cancelled") instead of numbers
 builder.Services.AddControllers()
-    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // [ApiController] answers invalid input with 400 automatically; this only gives it a Hebrew title
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var problem = new ValidationProblemDetails(context.ModelState)
+            {
+                Title = "הנתונים שנשלחו אינם תקינים",
+                Status = StatusCodes.Status400BadRequest,
+                Instance = context.HttpContext.Request.Path
+            };
+            return new BadRequestObjectResult(problem) { ContentTypes = { "application/problem+json" } };
+        };
+    });
+
+// CORS: which websites (the React client) may call this API from the browser.
+// The addresses come from configuration - development: localhost:5173 (Vite); production: set in the cloud
+const string ClientCorsPolicy = "ClientPolicy";
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options =>
+    options.AddPolicy(ClientCorsPolicy, policy => policy
+        .WithOrigins(allowedOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .WithExposedHeaders(CorrelationIdMiddleware.HeaderName, "Location")));
 
 // Swagger: a documentation page for every endpoint, with an Authorize button for the JWT
 builder.Services.AddSwaggerWithJwt();
@@ -91,6 +117,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(ClientCorsPolicy);
 
 // Authentication (who is calling - reads the token) must come before Authorization (are they allowed)
 app.UseAuthentication();

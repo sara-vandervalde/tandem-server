@@ -29,6 +29,9 @@ public class EventRepository : IEventRepository
                 .ThenInclude(g => g!.Responsible)
             .Include(e => e.Meal)
                 .ThenInclude(m => m.Responsible)
+            .Include(e => e.Participants)
+                .ThenInclude(p => p.User)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
     public async Task<PagedResult<Event>> GetPagedAsync(

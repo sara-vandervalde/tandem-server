@@ -18,6 +18,8 @@ public interface IGroupRepository
 
     Task<bool> IsMemberAsync(int groupId, int userId, CancellationToken cancellationToken);
 
+    Task<List<int>> GetMemberIdsAsync(int groupId, CancellationToken cancellationToken);
+
     // Which of the given emails already belong to members of the group
     Task<List<string>> GetMemberEmailsAsync(
         int groupId, IReadOnlyCollection<string> emails, CancellationToken cancellationToken);
