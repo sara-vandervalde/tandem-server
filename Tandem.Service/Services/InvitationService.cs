@@ -15,6 +15,7 @@ namespace Tandem.Service.Services;
 public class InvitationService : IInvitationService
 {
     private const int ValidityDays = 14;
+    private const string InvitationNotFoundMessage = "ההזמנה לא נמצאה";
 
     private static readonly EmailAddressAttribute EmailValidator = new();
 
@@ -130,6 +131,109 @@ public class InvitationService : IInvitationService
 
         var invitations = await _invitationRepository.GetForGroupAsync(groupId, cancellationToken);
         return Result<IReadOnlyList<InvitationDto>>.Success(_mapper.Map<List<InvitationDto>>(invitations));
+    }
+
+    public async Task<IReadOnlyList<InvitationDto>> GetMyInvitationsAsync(
+        string userEmail, CancellationToken cancellationToken)
+    {
+        var invitations = await _invitationRepository.GetActiveForEmailAsync(
+            userEmail.ToLowerInvariant(), DateTime.UtcNow, cancellationToken);
+
+        return _mapper.Map<List<InvitationDto>>(invitations);
+    }
+
+    public async Task<Result> RespondAsync(
+        int invitationId, bool accept, int userId, string userEmail, CancellationToken cancellationToken)
+    {
+        var invitation = await _invitationRepository.GetByIdForUpdateAsync(invitationId, cancellationToken);
+        if (invitation is null)
+        {
+            return Result.NotFound(InvitationNotFoundMessage);
+        }
+
+        // An invitation belongs to an email address, not to a user id
+        if (invitation.Email != userEmail.ToLowerInvariant())
+        {
+            return Result.Forbidden("ההזמנה הזו לא נשלחה אלייך");
+        }
+
+        var stateError = CheckStillPending(invitation, DateTime.UtcNow);
+        if (stateError is not null)
+        {
+            return stateError;
+        }
+
+        invitation.Status = accept ? InvitationStatus.Accepted : InvitationStatus.Declined;
+        invitation.RespondedAt = DateTime.UtcNow;
+
+        // Joining and closing the invitation are one save: either both happen or neither does.
+        // Both repositories share the request's DbContext, so one SaveChanges writes both rows
+        var alreadyMember = await _groupRepository.IsMemberAsync(invitation.GroupId, userId, cancellationToken);
+        if (accept && !alreadyMember)
+        {
+            _groupRepository.AddMember(new GroupMember
+            {
+                GroupId = invitation.GroupId,
+                UserId = userId,
+                JoinedAt = DateTime.UtcNow
+            });
+        }
+
+        await _invitationRepository.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Invitation {InvitationId} {Action} by user {UserId}",
+            invitationId, accept ? "accepted" : "declined", userId);
+
+        if (accept)
+        {
+            await _notificationSender.SendAsync(
+                invitation.Group.Manager.Email,
+                $"חבר/ה חדש/ה הצטרף/ה לקבוצה \"{invitation.Group.Name}\"",
+                $"{invitation.Email} אישר/ה את ההזמנה והצטרף/ה לקבוצה \"{invitation.Group.Name}\".",
+                cancellationToken);
+        }
+
+        return Result.Success();
+    }
+
+    public async Task<Result> CancelAsync(int invitationId, int userId, CancellationToken cancellationToken)
+    {
+        var invitation = await _invitationRepository.GetByIdForUpdateAsync(invitationId, cancellationToken);
+        if (invitation is null)
+        {
+            return Result.NotFound(InvitationNotFoundMessage);
+        }
+
+        if (invitation.Group.ManagerId != userId)
+        {
+            return Result.Forbidden("רק מנהל הקבוצה יכול לבטל הזמנה");
+        }
+
+        if (invitation.Status != InvitationStatus.Pending)
+        {
+            return Result.Conflict("אפשר לבטל רק הזמנה שעדיין ממתינה");
+        }
+
+        // Kept as Cancelled rather than deleted, so the manager still sees the history
+        invitation.Status = InvitationStatus.Cancelled;
+        invitation.RespondedAt = DateTime.UtcNow;
+        await _invitationRepository.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Invitation {InvitationId} cancelled by user {UserId}", invitationId, userId);
+
+        return Result.Success();
+    }
+
+    private static Result? CheckStillPending(GroupInvitation invitation, DateTime now)
+    {
+        if (invitation.Status != InvitationStatus.Pending)
+        {
+            return Result.Conflict("ההזמנה כבר טופלה");
+        }
+
+        return invitation.ExpiresAt <= now
+            ? Result.Conflict("תוקף ההזמנה פג. אפשר לבקש ממנהל הקבוצה הזמנה חדשה")
+            : null;
     }
 
     // Lowercase, trim, drop duplicates; invalid addresses go to the skipped list

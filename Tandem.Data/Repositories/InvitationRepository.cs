@@ -31,6 +31,24 @@ public class InvitationRepository : IInvitationRepository
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync(cancellationToken);
 
+    public Task<List<GroupInvitation>> GetActiveForEmailAsync(
+        string email, DateTime now, CancellationToken cancellationToken) =>
+        _context.GroupInvitations
+            .AsNoTracking()
+            .Include(i => i.Group)
+            .Include(i => i.InvitedBy)
+            .Where(i => i.Email == email
+                        && i.Status == InvitationStatus.Pending
+                        && i.ExpiresAt > now)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public Task<GroupInvitation?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken) =>
+        _context.GroupInvitations
+            .Include(i => i.Group)
+                .ThenInclude(g => g.Manager)
+            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
     public void AddRange(IEnumerable<GroupInvitation> invitations) =>
         _context.GroupInvitations.AddRange(invitations);
 

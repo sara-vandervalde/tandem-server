@@ -24,5 +24,8 @@ public interface IGroupRepository
 
     void Add(Group group);
 
+    // Marks a membership for insertion; saved by the next SaveChangesAsync on the same request
+    void AddMember(GroupMember member);
+
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

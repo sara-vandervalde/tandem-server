@@ -12,4 +12,14 @@ public interface IInvitationService
     // Manager only: every invitation of the group and its status
     Task<Result<IReadOnlyList<InvitationDto>>> GetForGroupAsync(
         int groupId, int userId, CancellationToken cancellationToken);
+
+    // The logged-in user's pending, unexpired invitations, matched by email (from any group)
+    Task<IReadOnlyList<InvitationDto>> GetMyInvitationsAsync(string userEmail, CancellationToken cancellationToken);
+
+    // Only the invited user. Accepting adds them to the group in the same save. Already handled or expired: 409
+    Task<Result> RespondAsync(
+        int invitationId, bool accept, int userId, string userEmail, CancellationToken cancellationToken);
+
+    // Manager only, and only while the invitation is pending
+    Task<Result> CancelAsync(int invitationId, int userId, CancellationToken cancellationToken);
 }
