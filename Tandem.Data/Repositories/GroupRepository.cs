@@ -33,6 +33,21 @@ public class GroupRepository : IGroupRepository
                 .ThenInclude(m => m.User)
             .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
 
+    public Task<Group?> GetByIdAsync(int id, CancellationToken cancellationToken) =>
+        _context.Groups
+            .AsNoTracking()
+            .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
+
+    public Task<bool> IsMemberAsync(int groupId, int userId, CancellationToken cancellationToken) =>
+        _context.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId, cancellationToken);
+
+    public Task<List<string>> GetMemberEmailsAsync(
+        int groupId, IReadOnlyCollection<string> emails, CancellationToken cancellationToken) =>
+        _context.GroupMembers
+            .Where(m => m.GroupId == groupId && emails.Contains(m.User.Email))
+            .Select(m => m.User.Email)
+            .ToListAsync(cancellationToken);
+
     // Adding the group also inserts any GroupMember rows in group.Members, in the same SaveChanges
     public void Add(Group group) => _context.Groups.Add(group);
 

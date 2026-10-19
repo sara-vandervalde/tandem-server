@@ -11,6 +11,7 @@ using Tandem.Data;
 using Tandem.Data.Notifications;
 using Tandem.Data.Repositories;
 using Tandem.Service.Authentication;
+using Tandem.Service.Authorization;
 using Tandem.Service.Mapping;
 using Tandem.Service.Services;
 
@@ -33,11 +34,17 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connect
 // Repositories: Scoped, like the DbContext they use
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGroupRepository, GroupRepository>();
+builder.Services.AddScoped<IInvitationRepository, InvitationRepository>();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
+builder.Services.AddScoped<IInvitationService, InvitationService>();
+
+// Group-level permission checks (manager / member), shared by the services. No interface: it has a single
+// implementation, and in unit tests it can run as-is on top of a mocked repository
+builder.Services.AddScoped<GroupAccessService>();
 
 // JWT: settings (IOptions), token validation on every request, and authorization
 builder.Services.AddJwtAuthentication(builder.Configuration);

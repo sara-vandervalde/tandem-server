@@ -13,6 +13,15 @@ public interface IGroupRepository
     // One group with its manager and each member's user details (read-only)
     Task<Group?> GetDetailsAsync(int id, CancellationToken cancellationToken);
 
+    // Just the group row, for permission checks (read-only)
+    Task<Group?> GetByIdAsync(int id, CancellationToken cancellationToken);
+
+    Task<bool> IsMemberAsync(int groupId, int userId, CancellationToken cancellationToken);
+
+    // Which of the given emails already belong to members of the group
+    Task<List<string>> GetMemberEmailsAsync(
+        int groupId, IReadOnlyCollection<string> emails, CancellationToken cancellationToken);
+
     void Add(Group group);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

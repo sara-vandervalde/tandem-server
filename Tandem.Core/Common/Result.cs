@@ -23,6 +23,12 @@ public class Result
     public static Result Forbidden(string error) => new(ResultStatus.Forbidden, error);
     public static Result Conflict(string error) => new(ResultStatus.Conflict, error);
     public static Result ValidationError(string error) => new(ResultStatus.ValidationError, error);
+
+    // Passes a failure on as a result of another type, e.g. a failed permission check inside a larger operation
+    public Result<TOther> ToFailure<TOther>() =>
+        IsSuccess
+            ? throw new InvalidOperationException("A successful result cannot be converted to a failure.")
+            : Result<TOther>.Failure(Status, Error!);
 }
 
 // A Result that also carries a value when the operation succeeded
@@ -45,4 +51,6 @@ public class Result<T> : Result
     public static new Result<T> Forbidden(string error) => new(ResultStatus.Forbidden, error);
     public static new Result<T> Conflict(string error) => new(ResultStatus.Conflict, error);
     public static new Result<T> ValidationError(string error) => new(ResultStatus.ValidationError, error);
+
+    internal static Result<T> Failure(ResultStatus status, string error) => new(status, error);
 }
