@@ -75,6 +75,48 @@ public class GroupService : IGroupService
         return Result<GroupDetailsDto>.Success(_mapper.Map<GroupDetailsDto>(created!));
     }
 
+    public async Task<Result> UpdateAsync(
+        int groupId, UpdateGroupRequest request, int userId, CancellationToken cancellationToken)
+    {
+        var group = await _groupRepository.GetWithMembersForUpdateAsync(groupId, cancellationToken);
+        if (group is null)
+        {
+            return Result.NotFound(GroupNotFoundMessage);
+        }
+
+        if (group.ManagerId != userId)
+        {
+            return Result.Forbidden(ManagerOnlyMessage);
+        }
+
+        group.Name = request.Name.Trim();
+        await _groupRepository.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> DeleteAsync(int groupId, int userId, bool isAdmin, CancellationToken cancellationToken)
+    {
+        var group = await _groupRepository.GetWithMembersForUpdateAsync(groupId, cancellationToken);
+        if (group is null)
+        {
+            return Result.NotFound(GroupNotFoundMessage);
+        }
+
+        if (!isAdmin && group.ManagerId != userId)
+        {
+            return Result.Forbidden("רק מנהל הקבוצה או מנהל המערכת יכולים למחוק קבוצה");
+        }
+
+        _groupRepository.Remove(group);
+        await _groupRepository.SaveChangesAsync(cancellationToken);
+
+        // Warning: deleting a group removes all its events - worth noticing in the log
+        _logger.LogWarning("Group {GroupId} deleted by user {UserId}", groupId, userId);
+
+        return Result.Success();
+    }
+
     public async Task<Result> TransferManagerAsync(
         int groupId, int newManagerId, int userId, CancellationToken cancellationToken)
     {

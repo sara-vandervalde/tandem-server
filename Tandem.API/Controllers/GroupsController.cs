@@ -57,6 +57,32 @@ public class GroupsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
     }
 
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(
+        [FromRoute] int id,
+        [FromBody] UpdateGroupRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _groupService.UpdateAsync(id, request, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
+    }
+
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete([FromRoute] int id, CancellationToken cancellationToken)
+    {
+        var result = await _groupService.DeleteAsync(id, User.GetUserId(), User.IsInRole("Admin"), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
+    }
+
     // The manager hands management to another member
     [HttpPut("{id:int}/manager")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

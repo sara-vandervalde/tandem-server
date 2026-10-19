@@ -12,6 +12,12 @@ public interface IGroupService
 
     Task<Result<GroupDetailsDto>> CreateAsync(CreateGroupRequest request, int userId, CancellationToken cancellationToken);
 
+    // Manager only
+    Task<Result> UpdateAsync(int groupId, UpdateGroupRequest request, int userId, CancellationToken cancellationToken);
+
+    // Manager or Admin. Deletes the group with everything in it
+    Task<Result> DeleteAsync(int groupId, int userId, bool isAdmin, CancellationToken cancellationToken);
+
     // Manager only; the new manager must already be a member. The previous manager stays as a regular member
     Task<Result> TransferManagerAsync(int groupId, int newManagerId, int userId, CancellationToken cancellationToken);
 

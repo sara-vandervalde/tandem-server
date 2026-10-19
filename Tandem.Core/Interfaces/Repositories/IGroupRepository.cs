@@ -34,6 +34,9 @@ public interface IGroupRepository
 
     void Add(Group group);
 
+    // The database cascades the delete to members, invitations and events (see the Configurations)
+    void Remove(Group group);
+
     // Marks a membership for insertion; saved by the next SaveChangesAsync on the same request
     void AddMember(GroupMember member);
 

@@ -79,6 +79,8 @@ public class GroupRepository : IGroupRepository
     // Adding the group also inserts any GroupMember rows in group.Members, in the same SaveChanges
     public void Add(Group group) => _context.Groups.Add(group);
 
+    public void Remove(Group group) => _context.Groups.Remove(group);
+
     public void AddMember(GroupMember member) => _context.GroupMembers.Add(member);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
