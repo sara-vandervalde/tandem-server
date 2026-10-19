@@ -29,6 +29,7 @@ builder.Host.UseNLog(new NLogAspNetCoreOptions { RemoveLoggerFactoryFilter = fal
 // The connection string comes from User Secrets in development - never from code or appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("Connection string 'Default' is missing. Set it with dotnet user-secrets.");
+connectionString = connectionString.ToNpgsqlConnectionString();
 
 // Registered as Scoped: one DbContext per HTTP request
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
