@@ -114,6 +114,15 @@ public class EventRepository : IEventRepository
             .Include(e => e.Participants)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
+    public Task<int?> GetGroupIdAsync(int eventId, CancellationToken cancellationToken) =>
+        _context.Events
+            .Where(e => e.Id == eventId)
+            .Select(e => (int?)e.GroupId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<bool> HasItemsAsync(int eventId, ItemType type, CancellationToken cancellationToken) =>
+        _context.EventItems.AnyAsync(i => i.EventId == eventId && i.Type == type, cancellationToken);
+
     public void Remove(Event evt) => _context.Events.Remove(evt);
 
     // Adding the event also inserts its Venue and Meal (set on the navigation properties) in the same SaveChanges

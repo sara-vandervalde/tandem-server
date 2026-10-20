@@ -1,6 +1,7 @@
 ﻿using Tandem.Core.Common;
 using Tandem.Core.DTOs.Events;
 using Tandem.Core.Entities;
+using Tandem.Core.Enums;
 
 namespace Tandem.Core.Interfaces.Repositories;
 
@@ -18,6 +19,12 @@ public interface IEventRepository
 
     // Tracked, with the group, venue, gift, meal and participants - for editing, claiming, cancelling or deleting
     Task<Event?> GetForUpdateAsync(int id, CancellationToken cancellationToken);
+
+    // Only the event's group, for a permission check (null = no such event)
+    Task<int?> GetGroupIdAsync(int eventId, CancellationToken cancellationToken);
+
+    // Whether the event's "what to bring" list has items of this type
+    Task<bool> HasItemsAsync(int eventId, ItemType type, CancellationToken cancellationToken);
 
     void Add(Event evt);
 

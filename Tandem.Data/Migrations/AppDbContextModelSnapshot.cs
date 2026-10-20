@@ -307,6 +307,9 @@ namespace Tandem.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("CateringIncludesTableware")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("CateringName")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -343,6 +346,7 @@ namespace Tandem.Data.Migrations
                         new
                         {
                             Id = 1,
+                            CateringIncludesTableware = false,
                             EventId = 1,
                             Version = 0u
                         });

@@ -1,4 +1,4 @@
-using Tandem.Core.Enums;
+﻿using Tandem.Core.Enums;
 
 namespace Tandem.Core.Entities;
 
@@ -18,6 +18,9 @@ public class Meal : IResponsibility
 
     // Relevant only when MealType is Catering
     public string? CateringName { get; set; }
+
+    // Catering only: the caterer also brings dishes and tableware, so no equipment items are needed
+    public bool CateringIncludesTableware { get; set; }
 
     // Null = not entered yet; 0 = free
     public decimal? Price { get; set; }

@@ -39,6 +39,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 builder.Services.AddScoped<IInvitationRepository, InvitationRepository>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddScoped<IItemRepository, ItemRepository>();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -46,6 +47,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IInvitationService, InvitationService>();
 builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<IItemService, ItemService>();
 
 // Group-level permission checks (manager / member), shared by the services. No interface: it has a single
 // implementation, and in unit tests it can run as-is on top of a mocked repository

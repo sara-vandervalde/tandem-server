@@ -1,4 +1,4 @@
-namespace Tandem.Core.DTOs.Events;
+﻿namespace Tandem.Core.DTOs.Events;
 
 public class MealDto
 {
@@ -10,6 +10,8 @@ public class MealDto
     public string? MealType { get; init; }
 
     public string? CateringName { get; init; }
+
+    public bool CateringIncludesTableware { get; init; }
 
     public decimal? Price { get; init; }
 }

@@ -370,10 +370,20 @@ public class EventService : IEventService
             return access;
         }
 
+        var isCatering = request.MealType == MealType.Catering;
+
+        // "The caterer brings tableware" would leave equipment items nobody needs - they must be removed first
+        if (isCatering && request.CateringIncludesTableware
+            && await _eventRepository.HasItemsAsync(eventId, ItemType.Equipment, cancellationToken))
+        {
+            return Result.Conflict("ברשימה יש כבר כלים ועריכה. כדי לסמן שהקייטרינג מביא אותם, צריך קודם למחוק אותם");
+        }
+
         var meal = (Meal)access.Value!;
         meal.MealType = request.MealType;
-        // A caterer's name means nothing for a shared or self-made meal
-        meal.CateringName = request.MealType == MealType.Catering ? request.CateringName?.Trim() : null;
+        // A caterer's name and tableware mean nothing for a shared or self-made meal
+        meal.CateringName = isCatering ? request.CateringName?.Trim() : null;
+        meal.CateringIncludesTableware = isCatering && request.CateringIncludesTableware;
         meal.Price = request.Price;
 
         return await SaveAreaAsync(eventId, ResponsibilityArea.Meal, userId, cancellationToken);
