@@ -11,10 +11,8 @@ public interface IItemRepository
     // One item with who added it and who brings it (read-only) - the response after creating
     Task<EventItem?> GetDetailsAsync(int id, CancellationToken cancellationToken);
 
-    // Tracked, with the event, its venue and its meal - for the permission checks before a change
+    // Tracked, with the full event (areas, participants, items) - for the permission checks and the status
     Task<EventItem?> GetForUpdateAsync(int id, CancellationToken cancellationToken);
-
-    void Add(EventItem item);
 
     void Remove(EventItem item);
 

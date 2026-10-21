@@ -17,7 +17,7 @@ public interface IEventRepository
     // The group calendar: events between two dates, by date (read-only)
     Task<List<Event>> GetForGroupInRangeAsync(int groupId, DateTime from, DateTime to, CancellationToken cancellationToken);
 
-    // Tracked, with the group, venue, gift, meal and participants - for editing, claiming, cancelling or deleting
+    // Tracked, with the group, venue, gift, meal, participants and items - for editing, claiming, cancelling or deleting
     Task<Event?> GetForUpdateAsync(int id, CancellationToken cancellationToken);
 
     // Only the event's group, for a permission check (null = no such event)
@@ -25,9 +25,6 @@ public interface IEventRepository
 
     // Whether the event's "what to bring" list has items of this type
     Task<bool> HasItemsAsync(int eventId, ItemType type, CancellationToken cancellationToken);
-
-    // Tracked items of one type - when a meal type change turns the food items private or public
-    Task<List<EventItem>> GetItemsForUpdateAsync(int eventId, ItemType type, CancellationToken cancellationToken);
 
     void Add(Event evt);
 

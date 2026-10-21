@@ -112,6 +112,9 @@ public class EventRepository : IEventRepository
             .Include(e => e.Gift)
             .Include(e => e.Meal)
             .Include(e => e.Participants)
+            .Include(e => e.Items)
+            // Two lists (participants, items) in one JOIN would multiply each other's rows
+            .AsSplitQuery()
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
     public Task<int?> GetGroupIdAsync(int eventId, CancellationToken cancellationToken) =>
@@ -122,11 +125,6 @@ public class EventRepository : IEventRepository
 
     public Task<bool> HasItemsAsync(int eventId, ItemType type, CancellationToken cancellationToken) =>
         _context.EventItems.AnyAsync(i => i.EventId == eventId && i.Type == type, cancellationToken);
-
-    public Task<List<EventItem>> GetItemsForUpdateAsync(int eventId, ItemType type, CancellationToken cancellationToken) =>
-        _context.EventItems
-            .Where(i => i.EventId == eventId && i.Type == type)
-            .ToListAsync(cancellationToken);
 
     public void Remove(Event evt) => _context.Events.Remove(evt);
 

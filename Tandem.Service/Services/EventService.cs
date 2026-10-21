@@ -8,6 +8,7 @@ using Tandem.Core.Exceptions;
 using Tandem.Core.Interfaces.Repositories;
 using Tandem.Core.Interfaces.Services;
 using Tandem.Service.Authorization;
+using Tandem.Service.Rules;
 
 namespace Tandem.Service.Services;
 
@@ -190,6 +191,7 @@ public class EventService : IEventService
             //    the first save wins, the second one's UPDATE finds a different version and is rejected
             evt.OrganizerId = userId;
             evt.Status = EventStatus.Organizing;
+            EventStatusRules.Refresh(evt, _logger);
 
             try
             {
@@ -259,6 +261,7 @@ public class EventService : IEventService
             // 4. Claim and save. Two members who passed step 3 at the same moment both reach here:
             //    the first save wins, the second one's UPDATE finds a different version and is rejected
             responsibility.ResponsibleId = userId;
+            EventStatusRules.Refresh(evt, _logger);
 
             try
             {
@@ -313,6 +316,7 @@ public class EventService : IEventService
         // The price is what the responsible member paid, so it leaves with them
         responsibility.ResponsibleId = null;
         responsibility.Price = null;
+        EventStatusRules.Refresh(evt, _logger);
 
         try
         {
@@ -342,7 +346,7 @@ public class EventService : IEventService
         venue.Address = request.Address?.Trim();
         venue.Price = request.Price;
 
-        return await SaveAreaAsync(eventId, ResponsibilityArea.Venue, userId, cancellationToken);
+        return await SaveAreaAsync(venue.Event, ResponsibilityArea.Venue, userId, cancellationToken);
     }
 
     public async Task<Result> UpdateGiftAsync(
@@ -358,7 +362,7 @@ public class EventService : IEventService
         gift.Description = request.Description?.Trim();
         gift.Price = request.Price;
 
-        return await SaveAreaAsync(eventId, ResponsibilityArea.Gift, userId, cancellationToken);
+        return await SaveAreaAsync(gift.Event, ResponsibilityArea.Gift, userId, cancellationToken);
     }
 
     public async Task<Result> UpdateMealAsync(
@@ -382,7 +386,7 @@ public class EventService : IEventService
         var meal = (Meal)access.Value!;
         if (meal.MealType != request.MealType)
         {
-            var foodItems = await _eventRepository.GetItemsForUpdateAsync(eventId, ItemType.Food, cancellationToken);
+            var foodItems = meal.Event.Items.Where(i => i.Type == ItemType.Food).ToList();
 
             // The caterer brings the food: dishes on the list would be paid twice
             if (isCatering && foodItems.Count > 0)
@@ -409,7 +413,7 @@ public class EventService : IEventService
         meal.CateringIncludesTableware = isCatering && request.CateringIncludesTableware;
         meal.Price = request.Price;
 
-        return await SaveAreaAsync(eventId, ResponsibilityArea.Meal, userId, cancellationToken);
+        return await SaveAreaAsync(meal.Event, ResponsibilityArea.Meal, userId, cancellationToken);
     }
 
     public async Task<Result> UpdateAsync(
@@ -456,6 +460,9 @@ public class EventService : IEventService
         {
             evt.Participants.Clear();
         }
+
+        // Adding a gift or switching to SelectedMembers may take an organized event back to Organizing
+        EventStatusRules.Refresh(evt, _logger);
 
         // A member may claim the gift at the very moment the organizer removes it: the gift's version
         // no longer matches, the delete is rejected, and the organizer gets 409 instead of an error
@@ -509,6 +516,8 @@ public class EventService : IEventService
         {
             evt.Participants.Add(new EventParticipant { EventId = eventId, UserId = participantId });
         }
+
+        EventStatusRules.Refresh(evt, _logger);
 
         await _eventRepository.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Event {EventId}: {Count} participants set by user {UserId}",
@@ -620,8 +629,11 @@ public class EventService : IEventService
 
     // If the area changed since it was loaded (e.g. released at the same moment), the save is rejected: 409
     private async Task<Result> SaveAreaAsync(
-        int eventId, ResponsibilityArea area, int userId, CancellationToken cancellationToken)
+        Event evt, ResponsibilityArea area, int userId, CancellationToken cancellationToken)
     {
+        var eventId = evt.Id;
+        EventStatusRules.Refresh(evt, _logger);
+
         try
         {
             await _eventRepository.SaveChangesAsync(cancellationToken);

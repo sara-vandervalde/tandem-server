@@ -8,6 +8,7 @@ using Tandem.Core.Exceptions;
 using Tandem.Core.Interfaces.Repositories;
 using Tandem.Core.Interfaces.Services;
 using Tandem.Service.Authorization;
+using Tandem.Service.Rules;
 
 namespace Tandem.Service.Services;
 
@@ -117,7 +118,9 @@ public class ItemService : IItemService
             IsPrivate = isPrivate,
             AddedById = userId
         };
-        _itemRepository.Add(item);
+        // Added through the event's list, so the status sees it: a new public item is not claimed yet
+        evt.Items.Add(item);
+        EventStatusRules.Refresh(evt, _logger);
         await _itemRepository.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("User {UserId} added {Type} item {ItemId} to event {EventId}",
@@ -152,7 +155,10 @@ public class ItemService : IItemService
         }
 
         // If someone claimed or changed the item since it was loaded, the DELETE matches no row: 409
+        // Out of the event's list too, so the status no longer waits for it
+        item.Event.Items.Remove(item);
         _itemRepository.Remove(item);
+        EventStatusRules.Refresh(item.Event, _logger);
         try
         {
             await _itemRepository.SaveChangesAsync(cancellationToken);
@@ -204,6 +210,7 @@ public class ItemService : IItemService
 
             // 4. Save. If someone else claimed it after we loaded it, the UPDATE matches no row: 409
             item.AssigneeId = userId;
+            EventStatusRules.Refresh(item.Event, _logger);
             try
             {
                 await _itemRepository.SaveChangesAsync(cancellationToken);
@@ -249,6 +256,7 @@ public class ItemService : IItemService
         }
 
         item.AssigneeId = null;
+        EventStatusRules.Refresh(item.Event, _logger);
         try
         {
             await _itemRepository.SaveChangesAsync(cancellationToken);

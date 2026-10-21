@@ -35,13 +35,14 @@ public class ItemRepository : IItemRepository
 
     public Task<EventItem?> GetForUpdateAsync(int id, CancellationToken cancellationToken) =>
         _context.EventItems
-            .Include(i => i.Event)
-                .ThenInclude(e => e.Venue)
-            .Include(i => i.Event)
-                .ThenInclude(e => e.Meal)
+            .Include(i => i.Event).ThenInclude(e => e.Venue)
+            .Include(i => i.Event).ThenInclude(e => e.Gift)
+            .Include(i => i.Event).ThenInclude(e => e.Meal)
+            .Include(i => i.Event).ThenInclude(e => e.Participants)
+            // All the event's items (this one among them - EF keeps one object per row): the status needs them
+            .Include(i => i.Event).ThenInclude(e => e.Items)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
-
-    public void Add(EventItem item) => _context.EventItems.Add(item);
 
     public void Remove(EventItem item) => _context.EventItems.Remove(item);
 
