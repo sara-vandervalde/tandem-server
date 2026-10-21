@@ -69,4 +69,33 @@ public class ItemsController : ControllerBase
 
         return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
     }
+
+    // "I'll bring it". 409 when someone else already brings it, or took it a moment earlier
+    [HttpPut("{id:int}/assignee")]
+    [ProducesResponseType(typeof(ItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<ItemDto>> Claim(
+        [FromRoute] int id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _itemService.ClaimAsync(id, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : this.ToFailureResult(result);
+    }
+
+    [HttpDelete("{id:int}/assignee")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Release(
+        [FromRoute] int id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _itemService.ReleaseAsync(id, User.GetUserId(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : this.ToFailureResult(result);
+    }
 }

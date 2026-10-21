@@ -123,6 +123,11 @@ public class EventRepository : IEventRepository
     public Task<bool> HasItemsAsync(int eventId, ItemType type, CancellationToken cancellationToken) =>
         _context.EventItems.AnyAsync(i => i.EventId == eventId && i.Type == type, cancellationToken);
 
+    public Task<List<EventItem>> GetItemsForUpdateAsync(int eventId, ItemType type, CancellationToken cancellationToken) =>
+        _context.EventItems
+            .Where(i => i.EventId == eventId && i.Type == type)
+            .ToListAsync(cancellationToken);
+
     public void Remove(Event evt) => _context.Events.Remove(evt);
 
     // Adding the event also inserts its Venue and Meal (set on the navigation properties) in the same SaveChanges

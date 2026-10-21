@@ -17,6 +17,8 @@ public class ItemService : IItemService
     private const string EventNotFoundMessage = "האירוע לא נמצא";
     private const string ItemNotFoundMessage = "הפריט לא נמצא";
     private const string ClosedEventMessage = "אי אפשר לשנות את הרשימה באירוע שנסגר או בוטל";
+    private const string ItemTakenMessage = "מישהו/י אחר/ת כבר מביא/ה את הפריט הזה";
+    private const string ItemChangedMessage = "הפריט השתנה בינתיים. רעננו את הדף ונסו שוב";
 
     private readonly IItemRepository _itemRepository;
     private readonly IEventRepository _eventRepository;
@@ -158,10 +160,106 @@ public class ItemService : IItemService
         catch (ConcurrencyConflictException)
         {
             _logger.LogWarning("Concurrency conflict: user {UserId} could not delete item {ItemId}", userId, itemId);
-            return Result.Conflict("הפריט השתנה בינתיים. רעננו את הדף ונסו שוב");
+            return Result.Conflict(ItemChangedMessage);
         }
 
         _logger.LogInformation("User {UserId} deleted item {ItemId}", userId, itemId);
+        return Result.Success();
+    }
+
+    public async Task<Result<ItemDto>> ClaimAsync(int itemId, int userId, CancellationToken cancellationToken)
+    {
+        // 1. Load WITH tracking: EF remembers the item's version (xmin)
+        var item = await _itemRepository.GetForUpdateAsync(itemId, cancellationToken);
+        if (item is null || (item.IsPrivate && item.Event.Meal.ResponsibleId != userId))
+        {
+            return Result<ItemDto>.NotFound(ItemNotFoundMessage);
+        }
+
+        // 2. Permission: any member, also in Solo - bringing a dish is not running the event
+        var access = await _groupAccess.EnsureMemberAsync(item.Event.GroupId, userId, cancellationToken);
+        if (!access.IsSuccess)
+        {
+            return access.ToFailure<ItemDto>();
+        }
+
+        // 3. Business checks
+        if (item.Event.Status is EventStatus.Settled or EventStatus.Cancelled)
+        {
+            return Result<ItemDto>.Conflict(ClosedEventMessage);
+        }
+
+        if (item.IsPrivate)
+        {
+            return Result<ItemDto>.Conflict("זה פריט בתפריט הפרטי שלך – אין צורך לתפוס אותו");
+        }
+
+        // Already mine = nothing to do (a repeated PUT gives the same result)
+        if (item.AssigneeId != userId)
+        {
+            if (item.AssigneeId is not null)
+            {
+                return Result<ItemDto>.Conflict(ItemTakenMessage);
+            }
+
+            // 4. Save. If someone else claimed it after we loaded it, the UPDATE matches no row: 409
+            item.AssigneeId = userId;
+            try
+            {
+                await _itemRepository.SaveChangesAsync(cancellationToken);
+            }
+            catch (ConcurrencyConflictException)
+            {
+                _logger.LogWarning("Concurrency conflict: user {UserId} could not claim item {ItemId}", userId, itemId);
+                return Result<ItemDto>.Conflict(ItemTakenMessage);
+            }
+
+            _logger.LogInformation("User {UserId} claimed item {ItemId}", userId, itemId);
+        }
+
+        var claimed = await _itemRepository.GetDetailsAsync(itemId, cancellationToken);
+        return Result<ItemDto>.Success(_mapper.Map<ItemDto>(claimed!));
+    }
+
+    public async Task<Result> ReleaseAsync(int itemId, int userId, CancellationToken cancellationToken)
+    {
+        var item = await _itemRepository.GetForUpdateAsync(itemId, cancellationToken);
+        if (item is null || (item.IsPrivate && item.Event.Meal.ResponsibleId != userId))
+        {
+            return Result.NotFound(ItemNotFoundMessage);
+        }
+
+        if (item.Event.Status is EventStatus.Settled or EventStatus.Cancelled)
+        {
+            return Result.Conflict(ClosedEventMessage);
+        }
+
+        if (item.AssigneeId is null)
+        {
+            return Result.Conflict("אף אחד/ת לא תפס/ה את הפריט הזה");
+        }
+
+        // The one bringing it, or the one in charge of the list (e.g. a member who stopped answering)
+        var areaResponsibleId = item.Type == ItemType.Food
+            ? item.Event.Meal.ResponsibleId
+            : item.Event.Venue.ResponsibleId;
+        if (item.AssigneeId != userId && item.AddedById != userId && areaResponsibleId != userId)
+        {
+            return Result.Forbidden("רק מי שתפס/ה את הפריט, או האחראי/ת על התחום, יכול/ה לשחרר אותו");
+        }
+
+        item.AssigneeId = null;
+        try
+        {
+            await _itemRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            _logger.LogWarning("Concurrency conflict: user {UserId} could not release item {ItemId}", userId, itemId);
+            return Result.Conflict(ItemChangedMessage);
+        }
+
+        _logger.LogInformation("User {UserId} released item {ItemId}", userId, itemId);
         return Result.Success();
     }
 }

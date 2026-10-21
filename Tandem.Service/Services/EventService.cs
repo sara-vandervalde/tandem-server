@@ -380,6 +380,29 @@ public class EventService : IEventService
         }
 
         var meal = (Meal)access.Value!;
+        if (meal.MealType != request.MealType)
+        {
+            var foodItems = await _eventRepository.GetItemsForUpdateAsync(eventId, ItemType.Food, cancellationToken);
+
+            // The caterer brings the food: dishes on the list would be paid twice
+            if (isCatering && foodItems.Count > 0)
+            {
+                return Result.Conflict("ברשימה יש פריטי אוכל. כדי לעבור לקייטרינג, צריך קודם למחוק אותם");
+            }
+
+            // SelfMade = the cook's private menu, so nobody else brings these dishes any more.
+            // Any other type = the dishes are back on the shared list, open for claiming
+            var makePrivate = request.MealType == MealType.SelfMade;
+            foreach (var item in foodItems)
+            {
+                item.IsPrivate = makePrivate;
+                if (makePrivate)
+                {
+                    item.AssigneeId = null;
+                }
+            }
+        }
+
         meal.MealType = request.MealType;
         // A caterer's name and tableware mean nothing for a shared or self-made meal
         meal.CateringName = isCatering ? request.CateringName?.Trim() : null;

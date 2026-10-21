@@ -26,6 +26,9 @@ public interface IEventRepository
     // Whether the event's "what to bring" list has items of this type
     Task<bool> HasItemsAsync(int eventId, ItemType type, CancellationToken cancellationToken);
 
+    // Tracked items of one type - when a meal type change turns the food items private or public
+    Task<List<EventItem>> GetItemsForUpdateAsync(int eventId, ItemType type, CancellationToken cancellationToken);
+
     void Add(Event evt);
 
     // The database cascades the delete to venue, gift, meal, items and participants
