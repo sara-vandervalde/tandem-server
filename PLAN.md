@@ -381,7 +381,7 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 | 5 | בדיקות יחידה | 2 | ✅ הושלם – 37 בדיקות (22.10) |
 | 6 | בנקים, פרטי חשבון, חישוב תשלומים, Migration שני | 2.5–3 | ✅ הושלם (22.10) |
 | R5 | ריאקט: מחירים ותשלומים | 1–2 | ➜ לא בפרויקט הזה: הריאקט מוגש בפרויקט נפרד (החלטת הסטודנטית באישור המורה, 22.10) |
-| 7 | סגירת השרת: README, הרצה מאפס | 1 | |
+| 7 | סגירת השרת: README, הרצה מאפס | 1 | ⏳ נשאר git clone אחרי commit (22.10) |
 | UI | ממשק משתמש מלא ומעוצב ל-Tandem ב-`tandem-client` – Claude כותב (הריאקט לא מוגש למורת הריאקט; בקשת הסטודנטית, 22.10) | 3–4 | אחרי שלב 7 |
 | 8א | תוספת: לוח הודעות באירוע (שרת בלבד) | 1–1.5 | אחרי הליבה |
 | R6 | ליטוש עיצובי | 1–2 | ➜ לא בפרויקט הזה: הריאקט מוגש בפרויקט נפרד (החלטת הסטודנטית באישור המורה, 22.10) |
@@ -543,10 +543,12 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 ### שלב 7: סגירת השרת (יום אחד)
 
 - [x] `Database.Migrate()` בעליית השרת, בכל הסביבות (נכתב עם ההעלאה לענן, 19.10) – הבודקת לא מריצה שום פקודה
-- [ ] README: תיאור המערכת, המשאב המוגבל ואופן הטיפול בתחרות, הוראות הרצה: התקנת PostgreSQL והגדרת ה-connection string ב-User Secrets, משתמשי דמו לכל role עם פרטי כניסה
-- [ ] **תזכורת אבטחה:** AutoMapper 14.0.0 מכיל פרצת DoS ידועה (GHSA-rvv3-g6hj-g44x). לעבור ל-15.1.3 ומעלה עם רישיון Community חינמי (luckypennysoftware.com), המפתח ב-User Secrets – או לתעד ב-README למה הסיכון נמוך
-- [ ] מעבר על רשימת הבדיקה (סעיף 12), סעיף אחר סעיף
-- [ ] `git clone` לתיקייה חדשה, הרצה מאפס – ועובד
+- [x] README: תיאור המערכת, המשאב המוגבל ואופן הטיפול בתחרות, הוראות הרצה: התקנת PostgreSQL והגדרת ה-connection string ב-User Secrets, משתמשי דמו לכל role עם פרטי כניסה
+- [x] **תזכורת אבטחה:** AutoMapper 14.0.0 מכיל פרצת DoS ידועה (GHSA-rvv3-g6hj-g44x). לעבור ל-15.1.3 ומעלה עם רישיון Community חינמי (luckypennysoftware.com), המפתח ב-User Secrets – או לתעד ב-README למה הסיכון נמוך
+- [x] מעבר על רשימת הבדיקה (סעיף 12), סעיף אחר סעיף
+- [x] הרצה מאפס על בסיס נתונים ריק (`tandem_fresh`): Migrations ו-Seed רצים לבד, התחברות ו-409 עובדים (22.10)
+- [ ] `git clone` לתיקייה חדשה – אחרי ה-commit של שלב 7
+- [x] **בדיקת תחרות עם שני DbContext** מול PostgreSQL (`Tandem.Tests/Concurrency`) – דרישה מפורשת בחלק ג (נוספה 22.10)
 
 ---
 
@@ -659,24 +661,24 @@ PATCH  /api/settlements/{id}                      204   סימון "שילמתי
 
 | | דרישה | שלב |
 | --- | --- | --- |
-| ☐ | 1. REST, סטטוסים 200/201+Location/204/400/401/403/404/409, Swagger | 2, 3, 4 |
+| ☑ | 1. REST, סטטוסים 200/201+Location/204/400/401/403/404/409, Swagger | 2, 3, 4 |
 | ☑ | 2. FromRoute/FromQuery/FromBody, Data Annotations, ModelState, ולידציה עסקית ב-Service | 3 |
 | ☑ | 3. ארבעה פרויקטים, כיוון תלויות נכון, Core נקי | 0 |
-| ☐ | 4. DI ב-constructor, lifetimes מודעים, הסבר Singleton מול Scoped | 1 |
-| ☐ | 5. Code-First, DbSet לכל ישות, שתי migrations לפחות, connection string מהקונפיגורציה, Seed | 1, 4/6 |
+| ☑ | 4. DI ב-constructor, lifetimes מודעים, הסבר Singleton מול Scoped | 1 |
+| ☑ | 5. Code-First, DbSet לכל ישות, שתי migrations לפחות, connection string מהקונפיגורציה, Seed | 1, 4/6 |
 | ☑ | 6. CRUD מלא, LINQ עם סינון ומיון, Skip/Take בשאילתה, AsNoTracking | 3 |
-| ☐ | 7. one-to-many, many-to-many, Include/ThenInclude, Fluent API, בלי N+1 | 1, 3, 6 |
-| ☐ | 5א. שלוש migrations: Init, AddBanksAndSettlements, AddEventMessages | 1, 6, 8א |
+| ☑ | 7. one-to-many, many-to-many, Include/ThenInclude, Fluent API, בלי N+1 | 1, 3, 6 |
+| ☑ | 5א. שלוש migrations: Init, AddCateringIncludesTableware, AddBanksAndSettlements (AddEventMessages תהיה רביעית, אם 8א) | 1, 4, 6 |
 | ☑ | 8. DTOs נפרדים ל-request ול-response, AutoMapper Profiles | 3 |
-| ☐ | 9. async מקצה לקצה, CancellationToken | 1 והלאה |
+| ☑ | 9. async מקצה לקצה, CancellationToken | 1 והלאה |
 | ☑ | 10. Middleware לשגיאות ול-CorrelationId, סדר pipeline נכון | 1 |
 | ☑ | 11. appsettings לפי סביבה, IOptions, User Secrets, אין סודות ב-repo | 1, 2 |
 | ☑ | 12. JWT, הרשמה והתחברות, שני roles עם הרשאות שונות בפועל, [Authorize] | 2 |
-| ☐ | 13. xUnit + Moq על Service, בדיקת משאב מוגבל – תקין ונדחה | 5 |
-| ☐ | חלק ג: concurrency token, 409, בדיקה עם שני DbContext, הסבר ב-README | 4, 7 |
-| ☐ | חלק ד: NLog, CorrelationId בלוג, Error לחריגות, Warning להתנגשויות, בלי סודות | 1, 2, 4 |
-| ☐ | חלק ה: התחברות, רשימה עם pagination, פעולה על המשאב, הצגת 409 | R2–R4 |
-| ☐ | חלק ו: שני repositories, gitignore, README, עלייה בלי התערבות ידנית | 0, 7 |
+| ☑ | 13. xUnit + Moq על Service, בדיקת משאב מוגבל – תקין ונדחה | 5 |
+| ☑ | חלק ג: concurrency token, 409, בדיקה עם שני DbContext, הסבר ב-README | 4, 7 |
+| ☑ | חלק ד: NLog, CorrelationId בלוג, Error לחריגות, Warning להתנגשויות, בלי סודות | 1, 2, 4 |
+| ☐ | חלק ה: התחברות, רשימה עם pagination, פעולה על המשאב, הצגת 409 – **דרישה של מורת הדוטנט ללקוח** | UI |
+| ☑ | חלק ו: שני repositories, gitignore, README, עלייה בלי התערבות ידנית | 0, 7 |
 
 ### נושאי הסילבוס
 
