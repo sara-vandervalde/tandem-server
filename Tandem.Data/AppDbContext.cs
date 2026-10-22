@@ -20,6 +20,9 @@ public class AppDbContext : DbContext
     public DbSet<Gift> Gifts => Set<Gift>();
     public DbSet<Meal> Meals => Set<Meal>();
     public DbSet<EventItem> EventItems => Set<EventItem>();
+    public DbSet<Bank> Banks => Set<Bank>();
+    public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
+    public DbSet<Settlement> Settlements => Set<Settlement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

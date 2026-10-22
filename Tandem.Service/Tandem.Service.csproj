@@ -16,4 +16,9 @@
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.23.0" />
   </ItemGroup>
 
+  <!-- Internal classes (e.g. EventStatusRules) stay hidden from the API, but the tests may use them -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Tandem.Tests" />
+  </ItemGroup>
+
 </Project>

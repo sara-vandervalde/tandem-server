@@ -55,5 +55,19 @@ public static class SeedData
         // Venue and meal are created together with the event, still unclaimed
         modelBuilder.Entity<Venue>().HasData(new Venue { Id = 1, EventId = 1 });
         modelBuilder.Entity<Meal>().HasData(new Meal { Id = 1, EventId = 1 });
+
+        // The banks operating in Israel, for the bank account form (added with the AddBanksAndSettlements migration)
+        modelBuilder.Entity<Bank>().HasData(
+            new Bank { Id = 1, Name = "בנק לאומי" },
+            new Bank { Id = 2, Name = "בנק הפועלים" },
+            new Bank { Id = 3, Name = "בנק דיסקונט" },
+            new Bank { Id = 4, Name = "בנק מזרחי טפחות" },
+            new Bank { Id = 5, Name = "הבנק הבינלאומי הראשון" },
+            new Bank { Id = 6, Name = "בנק מרכנתיל דיסקונט" },
+            new Bank { Id = 7, Name = "בנק ירושלים" },
+            new Bank { Id = 8, Name = "בנק מסד" },
+            new Bank { Id = 9, Name = "בנק יהב" },
+            new Bank { Id = 10, Name = "בנק הדואר" },
+            new Bank { Id = 11, Name = "וואן זירו – הבנק הדיגיטלי" });
     }
 }

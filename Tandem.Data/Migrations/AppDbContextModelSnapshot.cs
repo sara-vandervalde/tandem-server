@@ -22,6 +22,123 @@ namespace Tandem.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Tandem.Core.Entities.Bank", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Banks");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "בנק לאומי"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "בנק הפועלים"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "בנק דיסקונט"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "בנק מזרחי טפחות"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "הבנק הבינלאומי הראשון"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Name = "בנק מרכנתיל דיסקונט"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Name = "בנק ירושלים"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Name = "בנק מסד"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Name = "בנק יהב"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Name = "בנק הדואר"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Name = "וואן זירו – הבנק הדיגיטלי"
+                        });
+                });
+
+            modelBuilder.Entity("Tandem.Core.Entities.BankAccount", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccountHolderName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("BankId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BranchNumber")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("BankAccounts");
+                });
+
             modelBuilder.Entity("Tandem.Core.Entities.Event", b =>
                 {
                     b.Property<int>("Id")
@@ -352,6 +469,44 @@ namespace Tandem.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Tandem.Core.Entities.Settlement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("FromUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ToUserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("FromUserId");
+
+                    b.HasIndex("ToUserId");
+
+                    b.ToTable("Settlements");
+                });
+
             modelBuilder.Entity("Tandem.Core.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -471,6 +626,25 @@ namespace Tandem.Data.Migrations
                             EventId = 1,
                             Version = 0u
                         });
+                });
+
+            modelBuilder.Entity("Tandem.Core.Entities.BankAccount", b =>
+                {
+                    b.HasOne("Tandem.Core.Entities.Bank", "Bank")
+                        .WithMany()
+                        .HasForeignKey("BankId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tandem.Core.Entities.User", "User")
+                        .WithOne()
+                        .HasForeignKey("Tandem.Core.Entities.BankAccount", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Bank");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Tandem.Core.Entities.Event", b =>
@@ -627,6 +801,33 @@ namespace Tandem.Data.Migrations
                     b.Navigation("Event");
 
                     b.Navigation("Responsible");
+                });
+
+            modelBuilder.Entity("Tandem.Core.Entities.Settlement", b =>
+                {
+                    b.HasOne("Tandem.Core.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Tandem.Core.Entities.User", "FromUser")
+                        .WithMany()
+                        .HasForeignKey("FromUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tandem.Core.Entities.User", "ToUser")
+                        .WithMany()
+                        .HasForeignKey("ToUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("FromUser");
+
+                    b.Navigation("ToUser");
                 });
 
             modelBuilder.Entity("Tandem.Core.Entities.Venue", b =>
