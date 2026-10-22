@@ -35,6 +35,22 @@ public class SettlementsController : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : this.ToFailureResult(result);
     }
 
+    // Everything about the event on one page: details, "what to bring", and the payments
+    // (the estimate before closing, the final ones after)
+    [HttpGet("events/{eventId:int}/summary")]
+    [ProducesResponseType(typeof(EventSummaryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<EventSummaryDto>> GetSummary(
+        [FromRoute] int eventId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _settlementService.GetSummaryAsync(
+            eventId, User.GetUserId(), User.IsInRole("Admin"), cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : this.ToFailureResult(result);
+    }
+
     // Closing the account creates the payments - a new resource, so POST and 201
     [HttpPost("events/{eventId:int}/settlements")]
     [ProducesResponseType(typeof(IReadOnlyList<SettlementDto>), StatusCodes.Status201Created)]

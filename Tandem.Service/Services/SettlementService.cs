@@ -2,6 +2,8 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Tandem.Core.Common;
 using Tandem.Core.DTOs.Banks;
+using Tandem.Core.DTOs.Events;
+using Tandem.Core.DTOs.Items;
 using Tandem.Core.DTOs.Settlements;
 using Tandem.Core.Entities;
 using Tandem.Core.Enums;
@@ -18,17 +20,23 @@ public class SettlementService : ISettlementService
 
     private readonly ISettlementRepository _settlementRepository;
     private readonly IBankRepository _bankRepository;
+    private readonly IEventRepository _eventRepository;
+    private readonly IItemRepository _itemRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<SettlementService> _logger;
 
     public SettlementService(
         ISettlementRepository settlementRepository,
         IBankRepository bankRepository,
+        IEventRepository eventRepository,
+        IItemRepository itemRepository,
         IMapper mapper,
         ILogger<SettlementService> logger)
     {
         _settlementRepository = settlementRepository;
         _bankRepository = bankRepository;
+        _eventRepository = eventRepository;
+        _itemRepository = itemRepository;
         _mapper = mapper;
         _logger = logger;
     }
@@ -130,6 +138,35 @@ public class SettlementService : ISettlementService
             eventId, userId, settlements.Count);
 
         return Result<IReadOnlyList<SettlementDto>>.Success(_mapper.Map<List<SettlementDto>>(settlements));
+    }
+
+    public async Task<Result<EventSummaryDto>> GetSummaryAsync(
+        int eventId, int userId, bool isAdmin, CancellationToken cancellationToken)
+    {
+        // The preview also checks that the event exists and that the user may see it (404 / 403)
+        var preview = await GetPreviewAsync(eventId, userId, isAdmin, cancellationToken);
+        if (!preview.IsSuccess)
+        {
+            return preview.ToFailure<EventSummaryDto>();
+        }
+
+        // The same queries as the event page and the item list - so both screens always agree
+        var evt = await _eventRepository.GetDetailsAsync(eventId, cancellationToken);
+        var items = await _itemRepository.GetForEventAsync(eventId, userId, cancellationToken);
+
+        var isFinal = evt!.Status == EventStatus.Settled;
+        var settlements = isFinal
+            ? await _settlementRepository.GetForEventAsync(eventId, cancellationToken)
+            : [];
+
+        return Result<EventSummaryDto>.Success(new EventSummaryDto
+        {
+            Event = _mapper.Map<EventDetailsDto>(evt),
+            Items = _mapper.Map<List<ItemDto>>(items),
+            IsFinal = isFinal,
+            Preview = isFinal ? null : preview.Value,
+            Settlements = _mapper.Map<List<SettlementDto>>(settlements)
+        });
     }
 
     public async Task<IReadOnlyList<MySettlementDto>> GetMineAsync(int userId, CancellationToken cancellationToken)

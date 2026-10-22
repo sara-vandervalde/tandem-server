@@ -34,6 +34,15 @@ public class SettlementRepository : ISettlementRepository
             .ThenByDescending(s => s.Event.EventDate)
             .ToListAsync(cancellationToken);
 
+    public Task<List<Settlement>> GetForEventAsync(int eventId, CancellationToken cancellationToken) =>
+        _context.Settlements
+            .AsNoTracking()
+            .Include(s => s.FromUser)
+            .Include(s => s.ToUser)
+            .Where(s => s.EventId == eventId)
+            .OrderBy(s => s.Id)
+            .ToListAsync(cancellationToken);
+
     public Task<Settlement?> GetForUpdateAsync(int id, CancellationToken cancellationToken) =>
         _context.Settlements.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 

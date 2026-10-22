@@ -14,6 +14,9 @@ public interface ISettlementRepository
     // Read-only: every payment the user pays or receives, with the event and both names
     Task<List<Settlement>> GetForUserAsync(int userId, CancellationToken cancellationToken);
 
+    // Read-only: the event's final payments, with both names - for the summary
+    Task<List<Settlement>> GetForEventAsync(int eventId, CancellationToken cancellationToken);
+
     // Tracked - for marking "I paid"
     Task<Settlement?> GetForUpdateAsync(int id, CancellationToken cancellationToken);
 

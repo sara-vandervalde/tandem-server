@@ -12,6 +12,9 @@ public interface ISettlementService
     // The organizer, only when the event is Organized. Creates the payments and moves the event to Settled
     Task<Result<IReadOnlyList<SettlementDto>>> CloseAsync(int eventId, int userId, CancellationToken cancellationToken);
 
+    // Group members and the Admin
+    Task<Result<EventSummaryDto>> GetSummaryAsync(int eventId, int userId, bool isAdmin, CancellationToken cancellationToken);
+
     // Unpaid first; the recipient's bank account only on the lines I pay
     Task<IReadOnlyList<MySettlementDto>> GetMineAsync(int userId, CancellationToken cancellationToken);
 
