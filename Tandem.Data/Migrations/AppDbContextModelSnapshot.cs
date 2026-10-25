@@ -254,6 +254,37 @@ namespace Tandem.Data.Migrations
                     b.ToTable("EventItems");
                 });
 
+            modelBuilder.Entity("Tandem.Core.Entities.EventMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("EventId", "CreatedAt");
+
+                    b.ToTable("EventMessages");
+                });
+
             modelBuilder.Entity("Tandem.Core.Entities.EventParticipant", b =>
                 {
                     b.Property<int>("EventId")
@@ -697,6 +728,25 @@ namespace Tandem.Data.Migrations
                     b.Navigation("Assignee");
 
                     b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("Tandem.Core.Entities.EventMessage", b =>
+                {
+                    b.HasOne("Tandem.Core.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Tandem.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Tandem.Core.Entities.EventParticipant", b =>

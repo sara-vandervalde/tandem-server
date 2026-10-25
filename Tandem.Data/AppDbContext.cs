@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<Bank> Banks => Set<Bank>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<Settlement> Settlements => Set<Settlement>();
+    public DbSet<EventMessage> EventMessages => Set<EventMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
